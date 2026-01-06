@@ -6,7 +6,6 @@
     <title>BAHRTUBE</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -16,7 +15,7 @@
                     <i class="fas fa-bars"></i>
                 </div>
                 <div class="logo" onclick="window.location.href='index.html'">
-                    <i class="fab fa-youtube"></i>
+                    <i class="fab fa-youtube" style="color: #ff0000;"></i>
                     <h1>BAHRTUBE</h1>
                 </div>
             </div>
@@ -32,6 +31,7 @@
                     <i class="fas fa-upload"></i>
                     <span>Загрузить</span>
                 </button>
+                
                 <div class="user-menu" id="user-menu">
                     <button class="header-btn auth-btn" id="auth-btn">
                         <i class="fas fa-user"></i>
@@ -50,11 +50,11 @@
                             <i class="fas fa-user-circle"></i>
                             <span>Мой канал</span>
                         </a>
-                        <a href="subscriptions.html" class="dropdown-item">
+                        <a href="#" class="dropdown-item">
                             <i class="fas fa-newspaper"></i>
                             <span>Подписки</span>
                         </a>
-                        <a href="history.html" class="dropdown-item">
+                        <a href="#" class="dropdown-item">
                             <i class="fas fa-history"></i>
                             <span>История</span>
                         </a>
@@ -75,32 +75,34 @@
                         <i class="fas fa-home"></i>
                         <span>Главная</span>
                     </a>
-                    <a href="trending.html" class="nav-item">
+                    <a href="#" class="nav-item">
                         <i class="fas fa-fire"></i>
                         <span>В тренде</span>
                     </a>
-                    <a href="subscriptions.html" class="nav-item">
+                    <a href="#" class="nav-item">
                         <i class="fas fa-newspaper"></i>
                         <span>Подписки</span>
                     </a>
-                    <a href="library.html" class="nav-item">
+                    <a href="#" class="nav-item">
                         <i class="fas fa-folder"></i>
                         <span>Библиотека</span>
                     </a>
-                    <a href="history.html" class="nav-item">
+                    <a href="#" class="nav-item">
                         <i class="fas fa-history"></i>
                         <span>История</span>
                     </a>
                     <div class="sidebar-divider"></div>
                     <h3 class="sidebar-title">Подписки</h3>
                     <div class="subscriptions-list" id="subscriptions-list">
-                        <div class="loading-spinner"></div>
+                        <div class="subscription-item">
+                            <div class="subscription-avatar">Т</div>
+                            <span>ТехноБлог</span>
+                        </div>
+                        <div class="subscription-item">
+                            <div class="subscription-avatar">И</div>
+                            <span>Игровой Мир</span>
+                        </div>
                     </div>
-                    <div class="sidebar-divider"></div>
-                    <a href="channels.html" class="nav-item">
-                        <i class="fas fa-compass"></i>
-                        <span>Обзор каналов</span>
-                    </a>
                 </nav>
             </aside>
 
@@ -119,19 +121,19 @@
                 <div class="section">
                     <div class="section-header">
                         <h2>Рекомендуемые видео</h2>
-                        <a href="trending.html" class="see-all">Смотреть все</a>
+                        <a href="#" class="see-all">Смотреть все</a>
                     </div>
                     <div class="video-grid" id="video-grid">
-                        <div class="loading-spinner large"></div>
+                        <!-- Videos will be loaded here -->
                     </div>
                 </div>
 
                 <div class="section">
                     <div class="section-header">
                         <h2>Популярные каналы</h2>
-                        <a href="channels.html" class="see-all">Все каналы</a>
+                        <a href="#" class="see-all">Все каналы</a>
                     </div>
-                    <div class="channels-grid" id="channels-grid">
+                    <div class="channels-grid">
                         <div class="channel-card">
                             <div class="channel-avatar large">Т</div>
                             <h3>ТехноБлог</h3>
@@ -142,6 +144,12 @@
                             <div class="channel-avatar large">И</div>
                             <h3>Игровой Мир</h3>
                             <p>Игры и стримы</p>
+                            <button class="subscribe-btn">Подписаться</button>
+                        </div>
+                        <div class="channel-card">
+                            <div class="channel-avatar large">М</div>
+                            <h3>Музыка дня</h3>
+                            <p>Новинки музыки</p>
                             <button class="subscribe-btn">Подписаться</button>
                         </div>
                     </div>
@@ -200,6 +208,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="app.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

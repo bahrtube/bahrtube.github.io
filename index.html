@@ -8,13 +8,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Вход / Регистрация</h2>
+            <div class="auth-form">
+                <input type="email" id="auth-email" placeholder="Email">
+                <input type="password" id="auth-password" placeholder="Пароль">
+                <div class="auth-buttons">
+                    <button id="login-btn">Войти</button>
+                    <button id="register-btn">Зарегистрироваться</button>
+                </div>
+                <div id="auth-message"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <header class="header">
             <div class="header-left">
                 <div class="menu-toggle">
                     <i class="fas fa-bars"></i>
                 </div>
-                <div class="logo">
+                <div class="logo" onclick="window.location.href='index.html'">
                     <i class="fab fa-youtube" style="color: #ff0000; margin-right: 8px;"></i>
                     <h1>BAHRTUBE</h1>
                 </div>
@@ -24,12 +40,14 @@
                 <button id="search-button"><i class="fas fa-search"></i></button>
             </div>
             <div class="header-right">
-                <button class="upload-btn" onclick="window.location.href='upload.html'">
+                <button class="upload-btn" onclick="checkAuthBeforeUpload()">
                     <i class="fas fa-upload"></i> Загрузить
                 </button>
-                <button class="auth-btn" id="auth-btn">
-                    <i class="fas fa-user"></i> Войти
-                </button>
+                <div class="user-menu" id="user-menu">
+                    <button class="auth-btn" id="auth-btn">
+                        <i class="fas fa-user"></i> Войти
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -39,23 +57,18 @@
                     <a href="index.html" class="nav-item active">
                         <i class="fas fa-home"></i> Главная
                     </a>
-                    <a href="#" class="nav-item">
+                    <a href="trending.html" class="nav-item">
                         <i class="fas fa-fire"></i> В тренде
                     </a>
-                    <a href="#" class="nav-item">
+                    <a href="history.html" class="nav-item">
                         <i class="fas fa-history"></i> История
                     </a>
+                    <a href="subscriptions.html" class="nav-item">
+                        <i class="fas fa-users"></i> Подписки
+                    </a>
                     <div class="sidebar-divider"></div>
-                    <h3 class="sidebar-title">Подписки</h3>
-                    <div id="subscriptions-list">
-                        <div class="subscription-item">
-                            <div class="subscription-avatar">Т</div>
-                            <span>ТехноБлог</span>
-                        </div>
-                        <div class="subscription-item">
-                            <div class="subscription-avatar">И</div>
-                            <span>Игровой Мир</span>
-                        </div>
+                    <h3 class="sidebar-title">Каналы</h3>
+                    <div id="channels-list">
                     </div>
                 </nav>
             </aside>
@@ -71,6 +84,7 @@
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="script.js"></script>
 </body>

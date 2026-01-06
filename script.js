@@ -1,148 +1,263 @@
+// ==== FIREBASE ИНИЦИАЛИЗАЦИЯ ====
 const firebaseConfig = {
     databaseURL: "https://flum-2-default-rtdb.firebaseio.com"
 };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const database = firebase.database();
+// Инициализируем Firebase только если еще не инициализирован
+try {
+    if (firebase.apps.length === 0) {
+        firebase.initializeApp(firebaseConfig);
+    }
+} catch (error) {
+    console.log("Firebase уже инициализирован");
+}
 
+const database = firebase.database();
+const auth = firebase.auth();
+
+// ==== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====
 let currentUser = null;
 let currentVideoId = null;
 
+// ==== ДАТАБЕЙС ФУНКЦИИ ====
 const db = {
     // Пользователи
     getUser: async (userId) => {
-        const snapshot = await database.ref(`users/${userId}`).once('value');
-        return snapshot.val();
+        try {
+            const snapshot = await database.ref(`users/${userId}`).once('value');
+            return snapshot.val();
+        } catch (error) {
+            console.error("Error getting user:", error);
+            return null;
+        }
     },
 
     createUser: async (userId, userData) => {
-        await database.ref(`users/${userId}`).set({
-            ...userData,
-            createdAt: firebase.database.ServerValue.TIMESTAMP,
-            subscribers: 0,
-            videos: 0,
-            views: 0
-        });
+        try {
+            await database.ref(`users/${userId}`).set({
+                ...userData,
+                createdAt: Date.now(),
+                subscribers: 0,
+                videos: 0,
+                views: 0
+            });
+        } catch (error) {
+            console.error("Error creating user:", error);
+        }
     },
 
     updateUser: async (userId, updates) => {
-        await database.ref(`users/${userId}`).update(updates);
+        try {
+            await database.ref(`users/${userId}`).update(updates);
+        } catch (error) {
+            console.error("Error updating user:", error);
+        }
     },
 
     // Видео
     getAllVideos: async () => {
-        const snapshot = await database.ref('videos').once('value');
-        return snapshot.val() || {};
+        try {
+            const snapshot = await database.ref('videos').once('value');
+            return snapshot.val() || {};
+        } catch (error) {
+            console.error("Error getting videos:", error);
+            return {};
+        }
     },
 
     getVideo: async (videoId) => {
-        const snapshot = await database.ref(`videos/${videoId}`).once('value');
-        return snapshot.val();
+        try {
+            const snapshot = await database.ref(`videos/${videoId}`).once('value');
+            return snapshot.val();
+        } catch (error) {
+            console.error("Error getting video:", error);
+            return null;
+        }
     },
 
     addVideo: async (userId, videoData) => {
-        const newVideoRef = database.ref('videos').push();
-        const videoId = newVideoRef.key;
-        
-        const videoWithId = {
-            ...videoData,
-            id: videoId,
-            userId: userId,
-            timestamp: firebase.database.ServerValue.TIMESTAMP,
-            likes: 0,
-            dislikes: 0,
-            views: 0,
-            comments: 0
-        };
-        
-        await newVideoRef.set(videoWithId);
-        
-        await db.updateUser(userId, {
-            videos: firebase.database.ServerValue.increment(1)
-        });
-        
-        return videoId;
+        try {
+            const newVideoRef = database.ref('videos').push();
+            const videoId = newVideoRef.key;
+            
+            const videoWithId = {
+                ...videoData,
+                id: videoId,
+                userId: userId,
+                timestamp: Date.now(),
+                likes: 0,
+                dislikes: 0,
+                views: 0,
+                comments: 0
+            };
+            
+            await newVideoRef.set(videoWithId);
+            
+            // Обновляем счетчик видео у пользователя
+            const user = await db.getUser(userId);
+            if (user) {
+                await db.updateUser(userId, {
+                    videos: (user.videos || 0) + 1
+                });
+            }
+            
+            return videoId;
+        } catch (error) {
+            console.error("Error adding video:", error);
+            throw error;
+        }
     },
 
     updateVideo: async (videoId, updates) => {
-        await database.ref(`videos/${videoId}`).update(updates);
+        try {
+            await database.ref(`videos/${videoId}`).update(updates);
+        } catch (error) {
+            console.error("Error updating video:", error);
+        }
     },
 
     getUserVideos: async (userId) => {
-        const snapshot = await database.ref('videos').orderByChild('userId').equalTo(userId).once('value');
-        return snapshot.val() || {};
+        try {
+            const snapshot = await database.ref('videos').orderByChild('userId').equalTo(userId).once('value');
+            return snapshot.val() || {};
+        } catch (error) {
+            console.error("Error getting user videos:", error);
+            return {};
+        }
     },
 
     // Подписки
     subscribe: async (subscriberId, channelId) => {
-        await database.ref(`subscriptions/${subscriberId}/${channelId}`).set(true);
-        await database.ref(`users/${channelId}/subscribers`).transaction(current => (current || 0) + 1);
+        try {
+            await database.ref(`subscriptions/${subscriberId}/${channelId}`).set(true);
+            const user = await db.getUser(channelId);
+            if (user) {
+                await db.updateUser(channelId, {
+                    subscribers: (user.subscribers || 0) + 1
+                });
+            }
+        } catch (error) {
+            console.error("Error subscribing:", error);
+        }
     },
 
     unsubscribe: async (subscriberId, channelId) => {
-        await database.ref(`subscriptions/${subscriberId}/${channelId}`).remove();
-        await database.ref(`users/${channelId}/subscribers`).transaction(current => Math.max(0, (current || 0) - 1));
+        try {
+            await database.ref(`subscriptions/${subscriberId}/${channelId}`).remove();
+            const user = await db.getUser(channelId);
+            if (user && user.subscribers > 0) {
+                await db.updateUser(channelId, {
+                    subscribers: Math.max(0, (user.subscribers || 0) - 1)
+                });
+            }
+        } catch (error) {
+            console.error("Error unsubscribing:", error);
+        }
     },
 
     isSubscribed: async (subscriberId, channelId) => {
-        const snapshot = await database.ref(`subscriptions/${subscriberId}/${channelId}`).once('value');
-        return snapshot.exists();
+        try {
+            const snapshot = await database.ref(`subscriptions/${subscriberId}/${channelId}`).once('value');
+            return snapshot.exists();
+        } catch (error) {
+            console.error("Error checking subscription:", error);
+            return false;
+        }
     },
 
     getSubscriptions: async (userId) => {
-        const snapshot = await database.ref(`subscriptions/${userId}`).once('value');
-        return snapshot.val() || {};
+        try {
+            const snapshot = await database.ref(`subscriptions/${userId}`).once('value');
+            return snapshot.val() || {};
+        } catch (error) {
+            console.error("Error getting subscriptions:", error);
+            return {};
+        }
     },
 
     // Комментарии
     addComment: async (videoId, userId, commentText) => {
-        const newCommentRef = database.ref(`comments/${videoId}`).push();
-        const commentId = newCommentRef.key;
-        
-        const comment = {
-            id: commentId,
-            userId: userId,
-            text: commentText,
-            timestamp: firebase.database.ServerValue.TIMESTAMP,
-            likes: 0
-        };
-        
-        await newCommentRef.set(comment);
-        
-        await database.ref(`videos/${videoId}/comments`).transaction(current => (current || 0) + 1);
-        
-        return commentId;
+        try {
+            const newCommentRef = database.ref(`comments/${videoId}`).push();
+            const commentId = newCommentRef.key;
+            
+            const comment = {
+                id: commentId,
+                userId: userId,
+                text: commentText,
+                timestamp: Date.now(),
+                likes: 0
+            };
+            
+            await newCommentRef.set(comment);
+            
+            // Обновляем счетчик комментариев у видео
+            const video = await db.getVideo(videoId);
+            if (video) {
+                await db.updateVideo(videoId, {
+                    comments: (video.comments || 0) + 1
+                });
+            }
+            
+            return commentId;
+        } catch (error) {
+            console.error("Error adding comment:", error);
+            throw error;
+        }
     },
 
     getComments: async (videoId) => {
-        const snapshot = await database.ref(`comments/${videoId}`).once('value');
-        return snapshot.val() || {};
+        try {
+            const snapshot = await database.ref(`comments/${videoId}`).once('value');
+            return snapshot.val() || {};
+        } catch (error) {
+            console.error("Error getting comments:", error);
+            return {};
+        }
     },
 
     likeComment: async (videoId, commentId, userId) => {
-        await database.ref(`commentLikes/${commentId}/${userId}`).set(true);
-        await database.ref(`comments/${videoId}/${commentId}/likes`).transaction(current => (current || 0) + 1);
+        try {
+            await database.ref(`commentLikes/${commentId}/${userId}`).set(true);
+            await database.ref(`comments/${videoId}/${commentId}/likes`).transaction(current => (current || 0) + 1);
+        } catch (error) {
+            console.error("Error liking comment:", error);
+        }
     },
 
     // Лайки видео
     likeVideo: async (videoId, userId) => {
-        await database.ref(`videoLikes/${videoId}/${userId}`).set(true);
-        await database.ref(`videos/${videoId}/likes`).transaction(current => (current || 0) + 1);
+        try {
+            await database.ref(`videoLikes/${videoId}/${userId}`).set(true);
+            await database.ref(`videos/${videoId}/likes`).transaction(current => (current || 0) + 1);
+        } catch (error) {
+            console.error("Error liking video:", error);
+        }
     },
 
     unlikeVideo: async (videoId, userId) => {
-        await database.ref(`videoLikes/${videoId}/${userId}`).remove();
-        await database.ref(`videos/${videoId}/likes`).transaction(current => Math.max(0, (current || 0) - 1));
+        try {
+            await database.ref(`videoLikes/${videoId}/${userId}`).remove();
+            await database.ref(`videos/${videoId}/likes`).transaction(current => Math.max(0, (current || 0) - 1));
+        } catch (error) {
+            console.error("Error unliking video:", error);
+        }
     },
 
     isLiked: async (videoId, userId) => {
-        const snapshot = await database.ref(`videoLikes/${videoId}/${userId}`).once('value');
-        return snapshot.exists();
+        try {
+            const snapshot = await database.ref(`videoLikes/${videoId}/${userId}`).once('value');
+            return snapshot.exists();
+        } catch (error) {
+            console.error("Error checking like:", error);
+            return false;
+        }
     }
 };
 
+// ==== УТИЛИТНЫЕ ФУНКЦИИ ====
 function extractYouTubeId(url) {
+    if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
@@ -153,6 +268,7 @@ function generateThumbnail(videoId) {
 }
 
 function formatNumber(num) {
+    if (!num && num !== 0) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + ' млн';
     if (num >= 1000) return (num / 1000).toFixed(1) + ' тыс';
     return num.toString();
@@ -173,269 +289,7 @@ function formatDate(timestamp) {
     return `${Math.floor(diffDays / 365)} года назад`;
 }
 
-function createVideoCard(video, user) {
-    const youTubeId = extractYouTubeId(video.url);
-    
-    return `
-        <div class="video-card" onclick="window.location.href='video.html?id=${video.id}'">
-            <div class="video-thumbnail">
-                <img src="${generateThumbnail(youTubeId)}" alt="${video.title}" onerror="this.src='https://via.placeholder.com/320x180/252525/ffffff?text=No+Preview'">
-                <div class="video-thumbnail-overlay">8:15</div>
-            </div>
-            <div class="video-info">
-                <div class="channel-avatar-small" onclick="event.stopPropagation(); window.location.href='channel.html?id=${video.userId}'">
-                    ${user?.avatar || user?.name?.charAt(0) || 'А'}
-                </div>
-                <div class="video-details">
-                    <h3>${video.title}</h3>
-                    <div class="channel-name" onclick="event.stopPropagation(); window.location.href='channel.html?id=${video.userId}'">
-                        ${user?.name || 'Автор'}
-                    </div>
-                    <div class="video-stats">
-                        <span>${formatNumber(video.views || 0)} просмотров</span>
-                        <span>•</span>
-                        <span>${formatDate(video.timestamp)}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-async function loadHomePage() {
-    try {
-        const videos = await db.getAllVideos();
-        const videoGrid = document.getElementById('video-grid');
-        
-        if (!videoGrid) return;
-        
-        if (!videos || Object.keys(videos).length === 0) {
-            videoGrid.innerHTML = `
-                <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
-                    <h3>Нет загруженных видео</h3>
-                    <p>Будьте первым, кто загрузит видео!</p>
-                    <button onclick="checkAuthBeforeUpload()" style="margin-top: 16px; padding: 12px 24px; background-color: #065fd4; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                        Загрузить видео
-                    </button>
-                </div>
-            `;
-            return;
-        }
-        
-        const videoArray = Object.values(videos);
-        const sortedVideos = videoArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        
-        const videoCards = await Promise.all(sortedVideos.map(async (video) => {
-            const user = video.userId ? await db.getUser(video.userId) : null;
-            return createVideoCard(video, user);
-        }));
-        
-        videoGrid.innerHTML = videoCards.join('');
-        
-    } catch (error) {
-        console.error('Error loading videos:', error);
-    }
-}
-
-async function loadVideoPage() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const videoId = urlParams.get('id');
-    
-    if (!videoId) {
-        window.location.href = 'index.html';
-        return;
-    }
-    
-    currentVideoId = videoId;
-    
-    try {
-        const video = await db.getVideo(videoId);
-        if (!video) {
-            window.location.href = 'index.html';
-            return;
-        }
-        
-        const user = await db.getUser(video.userId);
-        const youTubeId = extractYouTubeId(video.url);
-        
-        document.getElementById('video-title').textContent = video.title || 'Без названия';
-        document.getElementById('video-views').textContent = formatNumber(video.views || 0) + ' просмотров';
-        document.getElementById('video-date').textContent = formatDate(video.timestamp);
-        document.getElementById('like-count').textContent = formatNumber(video.likes || 0);
-        document.getElementById('dislike-count').textContent = formatNumber(video.dislikes || 0);
-        document.getElementById('channel-name').textContent = user?.name || 'Автор';
-        document.getElementById('channel-subs').textContent = formatNumber(user?.subscribers || 0) + ' подписчиков';
-        document.getElementById('channel-avatar').textContent = user?.avatar || (user?.name?.charAt(0) || 'А');
-        document.getElementById('channel-avatar').onclick = () => window.location.href = `channel.html?id=${video.userId}`;
-        document.getElementById('video-description').textContent = video.description || 'Нет описания';
-        
-        const player = document.getElementById('video-player');
-        if (youTubeId && player) {
-            player.innerHTML = `
-                <iframe 
-                    width="100%" 
-                    height="100%" 
-                    src="https://www.youtube.com/embed/${youTubeId}?autoplay=1" 
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen>
-                </iframe>
-            `;
-        }
-        
-        await db.updateVideo(videoId, { views: (video.views || 0) + 1 });
-        
-        await loadRecommendations(videoId);
-        await loadComments(videoId);
-        setupVideoInteractions(video.userId);
-        
-    } catch (error) {
-        console.error('Error loading video:', error);
-    }
-}
-
-async function loadComments(videoId) {
-    try {
-        const comments = await db.getComments(videoId);
-        const commentsList = document.getElementById('comments-list');
-        
-        if (!commentsList) return;
-        
-        if (!comments || Object.keys(comments).length === 0) {
-            commentsList.innerHTML = '<p style="color: #aaa; text-align: center; padding: 20px;">Нет комментариев</p>';
-            return;
-        }
-        
-        const commentArray = Object.values(comments);
-        const sortedComments = commentArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        
-        const commentItems = await Promise.all(sortedComments.map(async (comment) => {
-            const user = await db.getUser(comment.userId);
-            return `
-                <div class="comment">
-                    <div class="comment-avatar" onclick="window.location.href='channel.html?id=${comment.userId}'">
-                        ${user?.avatar || user?.name?.charAt(0) || 'А'}
-                    </div>
-                    <div class="comment-content">
-                        <div class="comment-header">
-                            <span class="comment-author" onclick="window.location.href='channel.html?id=${comment.userId}'">
-                                ${user?.name || 'Пользователь'}
-                            </span>
-                            <span class="comment-time">${formatDate(comment.timestamp)}</span>
-                        </div>
-                        <div class="comment-text">${comment.text}</div>
-                        <div class="comment-actions">
-                            <button class="comment-action">
-                                <i class="far fa-thumbs-up"></i> ${comment.likes || 0}
-                            </button>
-                            <button class="comment-action">Ответить</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }));
-        
-        commentsList.innerHTML = commentItems.join('');
-        document.getElementById('comments-count').textContent = `${commentArray.length} комментариев`;
-        
-    } catch (error) {
-        console.error('Error loading comments:', error);
-    }
-}
-
-async function setupVideoInteractions(channelId) {
-    const likeBtn = document.getElementById('like-btn');
-    const dislikeBtn = document.getElementById('dislike-btn');
-    const subscribeBtn = document.getElementById('subscribe-btn');
-    const commentForm = document.getElementById('comment-form');
-    
-    if (likeBtn && currentUser) {
-        const isLiked = await db.isLiked(currentVideoId, currentUser.uid);
-        if (isLiked) {
-            likeBtn.classList.add('liked');
-            likeBtn.innerHTML = '<i class="fas fa-thumbs-up"></i><span>' + formatNumber((await db.getVideo(currentVideoId)).likes || 0) + '</span>';
-        }
-        
-        likeBtn.addEventListener('click', async () => {
-            if (!currentUser) {
-                showAuthModal();
-                return;
-            }
-            
-            try {
-                const isLiked = await db.isLiked(currentVideoId, currentUser.uid);
-                if (isLiked) {
-                    await db.unlikeVideo(currentVideoId, currentUser.uid);
-                    likeBtn.classList.remove('liked');
-                } else {
-                    await db.likeVideo(currentVideoId, currentUser.uid);
-                    likeBtn.classList.add('liked');
-                }
-                
-                const video = await db.getVideo(currentVideoId);
-                document.getElementById('like-count').textContent = formatNumber(video.likes || 0);
-                
-            } catch (error) {
-                console.error('Error updating like:', error);
-            }
-        });
-    }
-    
-    if (subscribeBtn && currentUser && channelId !== currentUser.uid) {
-        const isSubscribed = await db.isSubscribed(currentUser.uid, channelId);
-        
-        if (isSubscribed) {
-            subscribeBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Вы подписаны';
-            subscribeBtn.classList.add('subscribed');
-        }
-        
-        subscribeBtn.addEventListener('click', async () => {
-            if (!currentUser) {
-                showAuthModal();
-                return;
-            }
-            
-            try {
-                const isSubscribed = await db.isSubscribed(currentUser.uid, channelId);
-                
-                if (isSubscribed) {
-                    await db.unsubscribe(currentUser.uid, channelId);
-                    subscribeBtn.innerHTML = '<i class="fas fa-bell"></i> Подписаться';
-                    subscribeBtn.classList.remove('subscribed');
-                } else {
-                    await db.subscribe(currentUser.uid, channelId);
-                    subscribeBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Вы подписаны';
-                    subscribeBtn.classList.add('subscribed');
-                }
-                
-                const user = await db.getUser(channelId);
-                document.getElementById('channel-subs').textContent = formatNumber(user.subscribers || 0) + ' подписчиков';
-                
-            } catch (error) {
-                console.error('Error updating subscription:', error);
-            }
-        });
-    }
-    
-    if (commentForm && currentUser) {
-        commentForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const commentInput = document.getElementById('comment-input');
-            const commentText = commentInput.value.trim();
-            
-            if (!commentText) return;
-            
-            try {
-                await db.addComment(currentVideoId, currentUser.uid, commentText);
-                commentInput.value = '';
-                await loadComments(currentVideoId);
-            } catch (error) {
-                console.error('Error adding comment:', error);
-            }
-        });
-    }
-}
-
+// ==== ФУНКЦИИ ДЛЯ АВТОРИЗАЦИИ ====
 function showAuthModal() {
     document.getElementById('auth-modal').style.display = 'block';
 }
@@ -444,16 +298,29 @@ function hideAuthModal() {
     document.getElementById('auth-modal').style.display = 'none';
 }
 
+function showMessage(text, type) {
+    const messageEl = document.getElementById('auth-message');
+    if (messageEl) {
+        messageEl.textContent = text;
+        messageEl.style.color = type === 'error' ? '#ff4444' : '#44ff44';
+        messageEl.style.display = 'block';
+        
+        setTimeout(() => {
+            messageEl.style.display = 'none';
+        }, 3000);
+    }
+}
+
 function updateUserUI(user) {
     const userMenu = document.getElementById('user-menu');
-    const authBtn = document.getElementById('auth-btn');
+    if (!userMenu) return;
     
     if (user) {
         currentUser = user;
         
         userMenu.innerHTML = `
             <div class="user-avatar" id="user-avatar-btn">
-                ${user.email.charAt(0).toUpperCase()}
+                ${user.email ? user.email.charAt(0).toUpperCase() : 'А'}
             </div>
             <div class="user-dropdown" id="user-dropdown">
                 <div class="user-dropdown-item" onclick="window.location.href='profile.html'">
@@ -469,13 +336,21 @@ function updateUserUI(user) {
             </div>
         `;
         
-        document.getElementById('user-avatar-btn').addEventListener('click', () => {
-            document.getElementById('user-dropdown').classList.toggle('active');
-        });
+        const avatarBtn = document.getElementById('user-avatar-btn');
+        if (avatarBtn) {
+            avatarBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const dropdown = document.getElementById('user-dropdown');
+                if (dropdown) {
+                    dropdown.classList.toggle('active');
+                }
+            });
+        }
         
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('.user-menu')) {
-                document.getElementById('user-dropdown').classList.remove('active');
+            const dropdown = document.getElementById('user-dropdown');
+            if (dropdown && !e.target.closest('.user-menu')) {
+                dropdown.classList.remove('active');
             }
         });
         
@@ -486,7 +361,10 @@ function updateUserUI(user) {
                 <i class="fas fa-user"></i> Войти
             </button>
         `;
-        document.getElementById('auth-btn').addEventListener('click', showAuthModal);
+        const authBtn = document.getElementById('auth-btn');
+        if (authBtn) {
+            authBtn.addEventListener('click', showAuthModal);
+        }
     }
 }
 
@@ -538,7 +416,6 @@ async function register(email, password) {
 async function logout() {
     try {
         await auth.signOut();
-        currentUser = null;
         updateUserUI(null);
         showMessage('Вы вышли из аккаунта', 'success');
     } catch (error) {
@@ -546,17 +423,7 @@ async function logout() {
     }
 }
 
-function showMessage(text, type) {
-    const messageEl = document.getElementById('auth-message');
-    messageEl.textContent = text;
-    messageEl.style.color = type === 'error' ? '#ff4444' : '#44ff44';
-    messageEl.style.display = 'block';
-    
-    setTimeout(() => {
-        messageEl.style.display = 'none';
-    }, 3000);
-}
-
+// ==== ПРОВЕРКА АВТОРИЗАЦИИ ПЕРЕД ЗАГРУЗКОЙ ====
 function checkAuthBeforeUpload() {
     if (!currentUser) {
         showAuthModal();
@@ -565,22 +432,93 @@ function checkAuthBeforeUpload() {
     }
 }
 
-auth.onAuthStateChanged((user) => {
-    updateUserUI(user);
-});
+// ==== ВИДЕО ФУНКЦИИ ====
+function createVideoCard(video, user) {
+    const youTubeId = extractYouTubeId(video.url);
+    
+    return `
+        <div class="video-card" onclick="window.location.href='video.html?id=${video.id}'">
+            <div class="video-thumbnail">
+                <img src="${generateThumbnail(youTubeId)}" alt="${video.title}" onerror="this.src='https://via.placeholder.com/320x180/252525/ffffff?text=No+Preview'">
+                <div class="video-thumbnail-overlay">8:15</div>
+            </div>
+            <div class="video-info">
+                <div class="channel-avatar-small" onclick="event.stopPropagation(); window.location.href='channel.html?id=${video.userId}'">
+                    ${user?.avatar || (user?.name?.charAt(0) || 'А')}
+                </div>
+                <div class="video-details">
+                    <h3>${video.title || 'Без названия'}</h3>
+                    <div class="channel-name" onclick="event.stopPropagation(); window.location.href='channel.html?id=${video.userId}'">
+                        ${user?.name || 'Автор'}
+                    </div>
+                    <div class="video-stats">
+                        <span>${formatNumber(video.views)} просмотров</span>
+                        <span>•</span>
+                        <span>${formatDate(video.timestamp)}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
+async function loadHomePage() {
+    try {
+        const videos = await db.getAllVideos();
+        const videoGrid = document.getElementById('video-grid');
+        
+        if (!videoGrid) return;
+        
+        if (!videos || Object.keys(videos).length === 0) {
+            videoGrid.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
+                    <h3>Нет загруженных видео</h3>
+                    <p>Будьте первым, кто загрузит видео!</p>
+                    <button onclick="checkAuthBeforeUpload()" style="margin-top: 16px; padding: 12px 24px; background-color: #065fd4; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        Загрузить видео
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        const videoArray = Object.values(videos);
+        const sortedVideos = videoArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        
+        const videoCards = [];
+        for (const video of sortedVideos) {
+            const user = await db.getUser(video.userId);
+            videoCards.push(createVideoCard(video, user));
+        }
+        
+        videoGrid.innerHTML = videoCards.join('');
+        
+    } catch (error) {
+        console.error('Error loading videos:', error);
+    }
+}
+
+// ==== ИНИЦИАЛИЗАЦИЯ ====
 document.addEventListener('DOMContentLoaded', function() {
+    // Слушатель состояния авторизации
+    auth.onAuthStateChanged((user) => {
+        updateUserUI(user);
+    });
+    
+    // Закрытие модального окна
     const closeModal = document.querySelector('.close-modal');
     if (closeModal) {
         closeModal.addEventListener('click', hideAuthModal);
     }
     
+    // Клик вне модального окна
     window.addEventListener('click', (e) => {
         if (e.target.id === 'auth-modal') {
             hideAuthModal();
         }
     });
     
+    // Кнопки авторизации
     const loginBtn = document.getElementById('login-btn');
     const registerBtn = document.getElementById('register-btn');
     
@@ -590,6 +528,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const password = document.getElementById('auth-password').value;
             if (email && password) {
                 login(email, password);
+            } else {
+                showMessage('Заполните все поля', 'error');
             }
         });
     }
@@ -600,15 +540,53 @@ document.addEventListener('DOMContentLoaded', function() {
             const password = document.getElementById('auth-password').value;
             if (email && password) {
                 register(email, password);
+            } else {
+                showMessage('Заполните все поля', 'error');
             }
         });
     }
     
-    if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
+    // Загрузка главной страницы
+    if (window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname.includes('.html') === false) {
         loadHomePage();
     }
     
-    if (window.location.pathname.includes('video.html')) {
-        loadVideoPage();
+    // Поиск
+    const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
+    
+    if (searchInput && searchButton) {
+        searchButton.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                alert('Поиск: ' + query + ' (функция поиска в разработке)');
+            }
+        });
+        
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchButton.click();
+            }
+        });
+    }
+    
+    // Меню
+    const menuToggle = document.querySelector('.menu-toggle');
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                sidebar.style.display = sidebar.style.display === 'none' ? 'block' : 'none';
+            }
+        });
     }
 });
+
+// ==== ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ HTML ====
+window.extractYouTubeId = extractYouTubeId;
+window.generateThumbnail = generateThumbnail;
+window.formatNumber = formatNumber;
+window.formatDate = formatDate;
+window.showAuthModal = showAuthModal;
+window.checkAuthBeforeUpload = checkAuthBeforeUpload;
+window.logout = logout;

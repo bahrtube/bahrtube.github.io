@@ -12,6 +12,38 @@ const db = {
         return snapshot.val() || {};
     },
 
+    searchVideos: async (query) => {
+        const snapshot = await database.ref('videos').once('value');
+        const videos = snapshot.val() || {};
+        
+        const searchTerms = query.toLowerCase().split(' ');
+        const results = [];
+        
+        Object.values(videos).forEach(video => {
+            if (!video) return;
+            
+            const title = video.title ? video.title.toLowerCase() : '';
+            const channel = video.channelName ? video.channelName.toLowerCase() : '';
+            const description = video.description ? video.description.toLowerCase() : '';
+            
+            let score = 0;
+            
+            searchTerms.forEach(term => {
+                if (title.includes(term)) score += 5;
+                if (channel.includes(term)) score += 3;
+                if (description.includes(term)) score += 1;
+            });
+            
+            if (score > 0) {
+                results.push({ video, score });
+            }
+        });
+        
+        return results
+            .sort((a, b) => b.score - a.score)
+            .map(item => item.video);
+    },
+
     addVideo: async (videoData) => {
         const newVideoRef = database.ref('videos').push();
         const videoId = newVideoRef.key;
@@ -85,7 +117,7 @@ function createVideoCard(video) {
     const youTubeId = extractYouTubeId(video.url);
     
     return `
-        <div class="video-card" onclick="openVideoWithAnimation('${video.id}')">
+        <div class="video-card" onclick="openVideo('${video.id}')">
             <div class="video-thumbnail">
                 <img src="${generateThumbnail(youTubeId)}" alt="${video.title}" onerror="this.src='https://via.placeholder.com/320x180/252525/ffffff?text=No+Preview'">
                 <div class="video-thumbnail-overlay">8:15</div>
@@ -109,7 +141,7 @@ function createRecommendationCard(video) {
     const youTubeId = extractYouTubeId(video.url);
     
     return `
-        <div class="recommendation-card" onclick="openVideoWithAnimation('${video.id}')">
+        <div class="recommendation-card" onclick="openVideo('${video.id}')">
             <div class="recommendation-thumbnail">
                 <img src="${generateThumbnail(youTubeId)}" alt="${video.title}" onerror="this.src='https://via.placeholder.com/168x94/252525/ffffff?text=No+Preview'">
             </div>
@@ -126,45 +158,9 @@ function createRecommendationCard(video) {
     `;
 }
 
-// Анимация открытия видео
-function openVideoWithAnimation(videoId) {
-    const videoCard = event.currentTarget;
-    
-    // Создаем эффект расширения
-    const rect = videoCard.getBoundingClientRect();
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position: fixed;
-        top: ${rect.top}px;
-        left: ${rect.left}px;
-        width: ${rect.width}px;
-        height: ${rect.height}px;
-        background: #2E7D32;
-        border-radius: 12px;
-        z-index: 9999;
-        animation: expandVideo 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    `;
-    
-    document.body.appendChild(overlay);
-    
-    // Анимация расширения
-    setTimeout(() => {
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: #2E7D32;
-            z-index: 9999;
-            animation: fadeToPage 0.3s ease forwards;
-        `;
-    }, 600);
-    
-    // Переход на страницу видео
-    setTimeout(() => {
-        window.location.href = `video.html?id=${videoId}`;
-    }, 900);
+// Нормальное открытие видео без зеленого экрана
+function openVideo(videoId) {
+    window.location.href = `video.html?id=${videoId}`;
 }
 
 async function loadHomePage() {
@@ -179,7 +175,7 @@ async function loadHomePage() {
                 <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
                     <h3 style="margin-bottom: 16px; color: #fff;">Нет загруженных видео</h3>
                     <p style="color: #B0B0B0; margin-bottom: 24px;">Будьте первым, кто загрузит видео!</p>
-                    <button onclick="animateUploadButton()" style="padding: 14px 32px; background-color: #2E7D32; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 16px; transition: all 0.3s;">
+                    <button onclick="goToUpload()" style="padding: 14px 32px; background-color: #2E7D32; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 16px; transition: all 0.3s;">
                         Загрузить видео
                     </button>
                 </div>
@@ -197,8 +193,10 @@ async function loadHomePage() {
         
         // Загружаем видео с задержкой для плавного появления
         setTimeout(() => {
-            videoGrid.innerHTML = Object.values(videos)
-                .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+            const videoArray = Object.values(videos);
+            const sortedVideos = videoArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            
+            videoGrid.innerHTML = sortedVideos
                 .map(video => createVideoCard(video))
                 .join('');
         }, 600);
@@ -250,24 +248,30 @@ async function loadVideoPage() {
         
         const player = document.getElementById('video-player');
         if (youTubeId && player) {
-            // Пытаемся использовать разные прокси
-            const proxies = [
-                `https://piped.video/embed/${youTubeId}`,
-                `https://yewtu.be/embed/${youTubeId}`,
-                `https://vid.puffyan.us/embed/${youTubeId}`
-            ];
+            // Используем YouTube iframe с embed для России
+            // Добавляем параметр origin для обхода ограничений
+            const embedUrl = `https://www.youtube.com/embed/${youTubeId}?autoplay=1&rel=0&modestbranding=1&origin=${window.location.origin}`;
             
             player.innerHTML = `
                 <iframe 
                     width="100%" 
                     height="100%" 
-                    src="${proxies[0]}" 
+                    src="${embedUrl}" 
                     frameborder="0" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                     allowfullscreen
                     loading="lazy">
                 </iframe>
             `;
+            
+            // Fallback если iframe не загружается
+            setTimeout(() => {
+                const iframe = player.querySelector('iframe');
+                if (!iframe || !iframe.contentWindow) {
+                    loadYouTubeFallback(youTubeId, player);
+                }
+            }, 3000);
+            
         } else if (player) {
             player.innerHTML = `
                 <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #000; color: #fff; border-radius: 12px;">
@@ -302,7 +306,7 @@ async function loadVideoPage() {
             player.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #1E1E1E; color: #fff; border-radius: 12px; padding: 20px;">
                     <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #f44336; margin-bottom: 20px;"></i>
-                    <h3 style="margin-bottom: 12px;">Ошибка загрузки</h3>
+                    <h3 style="margin-bottom: 12px;">Оши��ка загрузки</h3>
                     <p style="color: #B0B0B0; text-align: center; margin-bottom: 24px;">Попробуйте обновить страницу или выбрать другое видео</p>
                     <button onclick="window.history.back()" style="padding: 12px 24px; background-color: #2E7D32; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
                         Назад
@@ -311,6 +315,25 @@ async function loadVideoPage() {
             `;
         }
     }
+}
+
+function loadYouTubeFallback(youTubeId, playerElement) {
+    // Fallback через YouTube-nocookie.com
+    const fallbackUrl = `https://www.youtube-nocookie.com/embed/${youTubeId}?autoplay=1`;
+    
+    playerElement.innerHTML = `
+        <iframe 
+            width="100%" 
+            height="100%" 
+            src="${fallbackUrl}" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen>
+        </iframe>
+        <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+            Используется резервный плеер
+        </div>
+    `;
 }
 
 async function loadRecommendations(currentVideoId) {
@@ -325,11 +348,41 @@ async function loadRecommendations(currentVideoId) {
             return;
         }
         
-        const videoArray = Object.values(videos);
-        const recommendations = videoArray
-            .filter(video => video && video.id !== currentVideoId)
+        const videoArray = Object.values(videos).filter(v => v && v.id !== currentVideoId);
+        
+        if (videoArray.length === 0) {
+            recommendationsList.innerHTML = '<p style="color: #B0B0B0; text-align: center; padding: 20px;">Нет рекомендаций</p>';
+            return;
+        }
+        
+        // Улучшенная система рекомендаций:
+        // 1. Случайные видео
+        // 2. Видео от того же автора (приоритет)
+        // 3. Самые новые видео
+        
+        const currentVideo = await db.getVideo(currentVideoId);
+        const currentChannel = currentVideo?.channelName;
+        
+        // Видео от того же автора
+        const sameChannelVideos = videoArray.filter(v => v.channelName === currentChannel);
+        
+        // Случайные видео
+        const randomVideos = [...videoArray]
             .sort(() => Math.random() - 0.5)
-            .slice(0, 5);
+            .slice(0, Math.min(5, videoArray.length));
+        
+        // Смешиваем: сначала от того же автора, потом случайные
+        let recommendations = [];
+        if (sameChannelVideos.length > 0) {
+            recommendations = [...sameChannelVideos.slice(0, 2), ...randomVideos.slice(0, 3)];
+        } else {
+            recommendations = randomVideos.slice(0, 5);
+        }
+        
+        // Убираем дубликаты
+        recommendations = recommendations.filter((v, i, a) => 
+            a.findIndex(v2 => v2.id === v.id) === i
+        ).slice(0, 5);
         
         if (recommendations.length === 0) {
             recommendationsList.innerHTML = '<p style="color: #B0B0B0; text-align: center; padding: 20px;">Нет рекомендаций</p>';
@@ -342,37 +395,36 @@ async function loadRecommendations(currentVideoId) {
             
     } catch (error) {
         console.error('Error loading recommendations:', error);
+        recommendationsList.innerHTML = '<p style="color: #B0B0B0; text-align: center; padding: 20px;">Ошибка загрузки рекомендаций</p>';
     }
 }
 
-function animateLikeButton() {
-    const likeBtn = document.getElementById('like-btn');
-    if (likeBtn) {
-        likeBtn.style.transform = 'scale(1.1)';
+// Анимации кнопок
+function animateButton(button) {
+    if (button) {
+        button.style.transform = 'scale(0.95)';
         setTimeout(() => {
-            likeBtn.style.transform = 'scale(1)';
+            button.style.transform = 'scale(1)';
         }, 200);
     }
 }
 
-function animateDislikeButton() {
-    const dislikeBtn = document.getElementById('dislike-btn');
-    if (dislikeBtn) {
-        dislikeBtn.style.transform = 'scale(1.1)';
-        setTimeout(() => {
-            dislikeBtn.style.transform = 'scale(1)';
-        }, 200);
-    }
-}
+// Ripple эффект
+function createRipple(event) {
+    const button = event.currentTarget;
+    const circle = document.createElement("span");
+    const diameter = Math.max(button.clientWidth, button.clientHeight);
+    const radius = diameter / 2;
 
-function animateSubscribeButton() {
-    const subscribeBtn = document.getElementById('subscribe-btn');
-    if (subscribeBtn) {
-        subscribeBtn.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-            subscribeBtn.style.transform = 'scale(1)';
-        }, 200);
-    }
+    circle.style.width = circle.style.height = `${diameter}px`;
+    circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+    circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+    circle.classList.add("ripple");
+
+    const ripple = button.getElementsByClassName("ripple")[0];
+    if (ripple) ripple.remove();
+
+    button.appendChild(circle);
 }
 
 function setupVideoInteractions() {
@@ -380,28 +432,10 @@ function setupVideoInteractions() {
     const dislikeBtn = document.getElementById('dislike-btn');
     const subscribeBtn = document.getElementById('subscribe-btn');
     
-    // Анимация ripple эффекта
-    function createRipple(event) {
-        const button = event.currentTarget;
-        const circle = document.createElement("span");
-        const diameter = Math.max(button.clientWidth, button.clientHeight);
-        const radius = diameter / 2;
-
-        circle.style.width = circle.style.height = `${diameter}px`;
-        circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
-        circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
-        circle.classList.add("ripple");
-
-        const ripple = button.getElementsByClassName("ripple")[0];
-        if (ripple) ripple.remove();
-
-        button.appendChild(circle);
-    }
-    
     if (likeBtn) {
         likeBtn.addEventListener('click', async (e) => {
             createRipple(e);
-            animateLikeButton();
+            animateButton(likeBtn);
             
             if (!currentVideoId) return;
             
@@ -442,7 +476,7 @@ function setupVideoInteractions() {
     if (dislikeBtn) {
         dislikeBtn.addEventListener('click', async (e) => {
             createRipple(e);
-            animateDislikeButton();
+            animateButton(dislikeBtn);
             
             if (!currentVideoId) return;
             
@@ -483,7 +517,7 @@ function setupVideoInteractions() {
     if (subscribeBtn) {
         subscribeBtn.addEventListener('click', async (e) => {
             createRipple(e);
-            animateSubscribeButton();
+            animateButton(subscribeBtn);
             
             if (!currentVideoId) return;
             
@@ -578,6 +612,43 @@ function setupUploadForm() {
     }
 }
 
+// Поиск видео
+async function performSearch(query) {
+    if (!query.trim()) {
+        showNotification('Введите поисковый запрос', 'info');
+        return;
+    }
+    
+    try {
+        showNotification('Идет поиск...', 'info');
+        const results = await db.searchVideos(query);
+        
+        if (results.length === 0) {
+            showNotification('Ничего не найдено', 'info');
+            return;
+        }
+        
+        // Если мы на главной странице, показываем результаты
+        if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
+            const videoGrid = document.getElementById('video-grid');
+            if (videoGrid) {
+                videoGrid.innerHTML = results
+                    .map(video => createVideoCard(video))
+                    .join('');
+                
+                showNotification(`Найдено ${results.length} видео`, 'success');
+            }
+        } else {
+            // Если не на главной, переходим на главную с поиском
+            window.location.href = `index.html?search=${encodeURIComponent(query)}`;
+        }
+        
+    } catch (error) {
+        console.error('Search error:', error);
+        showNotification('Ошибка поиска', 'error');
+    }
+}
+
 function showNotification(message, type = 'info') {
     // Удаляем старые уведомления
     const oldNotification = document.querySelector('.notification');
@@ -602,7 +673,7 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Мобильная навигация
+// Мобильная навигация и поиск
 function setupMobileNavigation() {
     if (window.innerWidth <= 768) {
         // Проверяем, нет ли уже мобильной навигации
@@ -622,9 +693,9 @@ function setupMobileNavigation() {
                 <i class="fas fa-home"></i>
                 <span>Главная</span>
             </a>
-            <a href="#" class="mobile-nav-item" onclick="showMobileTrending()">
-                <i class="fas fa-fire"></i>
-                <span>В тренде</span>
+            <a href="#" class="mobile-nav-item" onclick="showMobileSearch()">
+                <i class="fas fa-search"></i>
+                <span>Поиск</span>
             </a>
             <a href="upload.html" class="mobile-nav-item ${isUpload ? 'active' : ''}">
                 <i class="fas fa-upload"></i>
@@ -638,143 +709,128 @@ function setupMobileNavigation() {
         
         document.body.appendChild(mobileNav);
         
-        // Добавляем мобильный поиск в header
-        const header = document.querySelector('.header');
+        // Удаляем обычный поиск из header на мобильных
         const searchBar = document.querySelector('.search-bar');
+        if (searchBar) searchBar.style.display = 'none';
         
-        if (searchBar && header) {
-            const mobileSearch = document.createElement('div');
-            mobileSearch.className = 'mobile-search-bar';
-            mobileSearch.innerHTML = `
-                <input type="text" placeholder="Поиск видео..." id="mobile-search-input">
-                <button id="mobile-search-button"><i class="fas fa-search"></i></button>
-            `;
+        // Добавляем кнопку поиска в header для мобильных
+        const header = document.querySelector('.header');
+        if (header && !document.querySelector('.mobile-search-btn')) {
+            const mobileSearchBtn = document.createElement('button');
+            mobileSearchBtn.className = 'mobile-search-btn';
+            mobileSearchBtn.innerHTML = '<i class="fas fa-search"></i>';
+            mobileSearchBtn.onclick = showMobileSearch;
             
-            // Находим header-right и вставляем перед ним
-            const headerRight = document.querySelector('.header-right');
-            if (headerRight) {
-                header.insertBefore(mobileSearch, headerRight);
-            }
-            
-            // Обработка мобильного поиска
-            const mobileSearchInput = document.getElementById('mobile-search-input');
-            const mobileSearchButton = document.getElementById('mobile-search-button');
-            
-            if (mobileSearchButton) {
-                mobileSearchButton.addEventListener('click', () => {
-                    const query = mobileSearchInput ? mobileSearchInput.value.trim() : '';
-                    if (query) {
-                        showNotification('Поиск: ' + query + ' (функция поиска в разработке)', 'info');
-                    }
-                });
-            }
-            
-            if (mobileSearchInput) {
-                mobileSearchInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        mobileSearchButton.click();
-                    }
-                });
+            // Вставляем перед кнопкой "Войти"
+            const authBtn = document.querySelector('.auth-btn');
+            if (authBtn && authBtn.parentNode) {
+                authBtn.parentNode.insertBefore(mobileSearchBtn, authBtn);
             }
         }
+    } else {
+        // На десктопе показываем обычный поиск
+        const searchBar = document.querySelector('.search-bar');
+        if (searchBar) searchBar.style.display = 'flex';
         
-        // Добавляем стили для уведомлений
-        const style = document.createElement('style');
-        style.textContent = `
-            .notification {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #1E1E1E;
-                color: white;
-                padding: 16px 20px;
-                border-radius: 12px;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                z-index: 9999;
-                transform: translateX(100%);
-                opacity: 0;
-                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
-                border-left: 4px solid #2E7D32;
-                max-width: 350px;
-            }
-            
-            .notification.show {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            
-            .notification-success {
-                border-left-color: #2E7D32;
-            }
-            
-            .notification-error {
-                border-left-color: #f44336;
-            }
-            
-            .notification i {
-                font-size: 20px;
-            }
-            
-            .notification-success i {
-                color: #2E7D32;
-            }
-            
-            .notification-error i {
-                color: #f44336;
-            }
-            
-            .ripple {
-                position: absolute;
-                border-radius: 50%;
-                background: rgba(46, 125, 50, 0.4);
-                transform: scale(0);
-                animation: ripple-animation 0.6s linear;
-            }
-            
-            @keyframes ripple-animation {
-                to {
-                    transform: scale(4);
-                    opacity: 0;
-                }
-            }
-            
-            @keyframes expandVideo {
-                0% {
-                    transform: scale(1);
-                    border-radius: 12px;
-                }
-                100% {
-                    transform: scale(1.05);
-                    border-radius: 16px;
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-                }
-            }
-            
-            @keyframes fadeToPage {
-                0% {
-                    opacity: 1;
-                }
-                100% {
-                    opacity: 0;
-                    visibility: hidden;
-                }
-            }
-            
-            .upload-success-animation {
-                animation: uploadSuccess 0.5s ease;
-            }
-            
-            @keyframes uploadSuccess {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.05); }
-                100% { transform: scale(1); }
-            }
-        `;
-        document.head.appendChild(style);
+        // Удаляем мобильные элементы
+        const mobileNav = document.querySelector('.mobile-bottom-nav');
+        if (mobileNav) mobileNav.remove();
+        
+        const mobileSearchBtn = document.querySelector('.mobile-search-btn');
+        if (mobileSearchBtn) mobileSearchBtn.remove();
+        
+        const searchModal = document.querySelector('.mobile-search-modal');
+        if (searchModal) searchModal.remove();
     }
+}
+
+function showMobileSearch() {
+    // Удаляем старый модал
+    const oldModal = document.querySelector('.mobile-search-modal');
+    if (oldModal) oldModal.remove();
+    
+    // Создаем модальное окно поиска
+    const modal = document.createElement('div');
+    modal.className = 'mobile-search-modal';
+    modal.innerHTML = `
+        <div class="search-modal-overlay"></div>
+        <div class="search-modal-content">
+            <div class="search-modal-header">
+                <h3>Поиск видео</h3>
+                <button class="close-search-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="search-modal-body">
+                <div class="mobile-search-input-container">
+                    <input type="text" id="mobile-search-input" placeholder="Введите запрос..." autofocus>
+                    <button id="mobile-search-button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <div class="search-suggestions">
+                    <p>Популярные запросы:</p>
+                    <div class="suggestion-tags">
+                        <span class="suggestion-tag" onclick="searchFromSuggestion('музыка')">Музыка</span>
+                        <span class="suggestion-tag" onclick="searchFromSuggestion('игры')">Игры</span>
+                        <span class="suggestion-tag" onclick="searchFromSuggestion('обучение')">Обучение</span>
+                        <span class="suggestion-tag" onclick="searchFromSuggestion('спорт')">Спорт</span>
+                        <span class="suggestion-tag" onclick="searchFromSuggestion('технологии')">Технологии</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Обработчики событий
+    const closeBtn = modal.querySelector('.close-search-btn');
+    const overlay = modal.querySelector('.search-modal-overlay');
+    const searchInput = modal.querySelector('#mobile-search-input');
+    const searchButton = modal.querySelector('#mobile-search-button');
+    
+    // Закрытие модалки
+    function closeModal() {
+        modal.classList.add('closing');
+        setTimeout(() => modal.remove(), 300);
+    }
+    
+    if (closeBtn) closeBtn.onclick = closeModal;
+    if (overlay) overlay.onclick = closeModal;
+    
+    // Поиск
+    if (searchButton) {
+        searchButton.onclick = () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                performSearch(query);
+                closeModal();
+            }
+        };
+    }
+    
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (query) {
+                    performSearch(query);
+                    closeModal();
+                }
+            }
+        });
+    }
+}
+
+function searchFromSuggestion(query) {
+    performSearch(query);
+    const modal = document.querySelector('.mobile-search-modal');
+    if (modal) modal.remove();
+}
+
+function goToUpload() {
+    window.location.href = 'upload.html';
 }
 
 function showMobileTrending() {
@@ -785,24 +841,20 @@ function showMobileProfile() {
     showNotification('Вход в аккаунт в разработке', 'info');
 }
 
-function animateUploadButton() {
-    const button = event?.target || document.querySelector('button[onclick*="upload.html"]');
-    if (button) {
-        button.classList.add('upload-success-animation');
-        setTimeout(() => {
-            button.classList.remove('upload-success-animation');
-            window.location.href = 'upload.html';
-        }, 500);
-    } else {
-        window.location.href = 'upload.html';
-    }
-}
-
 // Основная инициализация
 document.addEventListener('DOMContentLoaded', function() {
     // Инициализация страниц
     if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
-        loadHomePage();
+        // Проверяем поисковый запрос в URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchQuery = urlParams.get('search');
+        
+        if (searchQuery) {
+            // Выполняем поиск если есть запрос
+            performSearch(searchQuery);
+        } else {
+            loadHomePage();
+        }
     }
     
     if (window.location.pathname.includes('video.html')) {
@@ -813,7 +865,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setupUploadForm();
     }
     
-    // Поиск
+    // Поиск для десктопа
     const searchInput = document.getElementById('search-input');
     const searchButton = document.getElementById('search-button');
     
@@ -821,7 +873,7 @@ document.addEventListener('DOMContentLoaded', function() {
         searchButton.addEventListener('click', () => {
             const query = searchInput.value.trim();
             if (query) {
-                showNotification('Поиск: ' + query + ' (функция поиска в разработке)', 'info');
+                performSearch(query);
             }
         });
         
@@ -879,31 +931,11 @@ document.addEventListener('DOMContentLoaded', function() {
     setupMobileNavigation();
     
     // Адаптация при изменении размера окна
-    window.addEventListener('resize', () => {
-        setupMobileNavigation();
-        
-        const sidebar = document.querySelector('.sidebar');
-        const mainContent = document.querySelector('.main-content');
-        
-        if (window.innerWidth <= 768) {
-            if (sidebar) sidebar.classList.add('closed');
-            if (mainContent) mainContent.classList.add('sidebar-hidden');
-        } else {
-            if (sidebar) sidebar.classList.remove('closed');
-            if (mainContent) mainContent.classList.remove('sidebar-hidden');
-            
-            // Удаляем мобильную навигацию на десктопе
-            const mobileNav = document.querySelector('.mobile-bottom-nav');
-            if (mobileNav) mobileNav.remove();
-            
-            const mobileSearch = document.querySelector('.mobile-search-bar');
-            if (mobileSearch) mobileSearch.remove();
-        }
-    });
+    window.addEventListener('resize', setupMobileNavigation);
     
     // Запускаем адаптацию при загрузке
     setTimeout(() => {
-        window.dispatchEvent(new Event('resize'));
+        setupMobileNavigation();
         
         // Плавное появление контента
         document.body.style.opacity = '0';
@@ -914,8 +946,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100);
     
     // Добавляем глобальные функции
-    window.openVideoWithAnimation = openVideoWithAnimation;
-    window.animateUploadButton = animateUploadButton;
+    window.openVideo = openVideo;
+    window.goToUpload = goToUpload;
+    window.showMobileSearch = showMobileSearch;
     window.showMobileTrending = showMobileTrending;
     window.showMobileProfile = showMobileProfile;
+    window.performSearch = performSearch;
+    window.searchFromSuggestion = searchFromSuggestion;
 });

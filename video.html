@@ -24,7 +24,10 @@
                 <button id="search-button"><i class="fas fa-search"></i></button>
             </div>
             <div class="header-right">
-                <button class="upload-btn" onclick="animateUploadButton()">
+                <button class="mobile-search-btn" onclick="showMobileSearch()">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="upload-btn" onclick="goToUpload()">
                     <i class="fas fa-upload"></i> <span>Загрузить</span>
                 </button>
                 <button class="auth-btn" id="auth-btn">
@@ -39,10 +42,10 @@
                     <a href="index.html" class="nav-item">
                         <i class="fas fa-home"></i> Главная
                     </a>
-                    <a href="#" class="nav-item" onclick="showMobileTrending()">
+                    <a href="#" class="nav-item" onclick="showNotification('Раздел "В тренде" в разработке', 'info')">
                         <i class="fas fa-fire"></i> В тренде
                     </a>
-                    <a href="#" class="nav-item">
+                    <a href="#" class="nav-item" onclick="showNotification('История просмотров в разработке', 'info')">
                         <i class="fas fa-history"></i> История
                     </a>
                     <div class="sidebar-divider"></div>
@@ -127,23 +130,5 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="script.js"></script>
-    
-    <script>
-        // Адаптация под мобильные устройства
-        document.addEventListener('DOMContentLoaded', function() {
-            // Скрываем sidebar на мобильных при загрузке
-            if (window.innerWidth <= 768) {
-                const sidebar = document.querySelector('.sidebar');
-                const mainContent = document.querySelector('.main-content');
-                if (sidebar) sidebar.classList.add('closed');
-                if (mainContent) mainContent.classList.add('sidebar-hidden');
-            }
-            
-            // Загружаем видео страницу
-            if (typeof loadVideoPage === 'function') {
-                loadVideoPage();
-            }
-        });
-    </script>
 </body>
 </html>

@@ -224,4 +224,162 @@ function setupVideoInteractions() {
                         const newDislikes = Math.max(0, (video.dislikes || 0) - 1);
                         dislikeBtn.classList.remove('disliked');
                         dislikeBtn.innerHTML = '<i class="far fa-thumbs-down"></i><span>' + formatNumber(newDislikes) + '</span>';
-                        await db.updateVideo(currentVideoId, {
+                        await db.updateVideo(currentVideoId, { dislikes: newDislikes });
+                    }
+                }
+                
+                userLiked = !userLiked;
+                await db.updateVideo(currentVideoId, { likes: newLikes });
+                document.getElementById('like-count').textContent = formatNumber(newLikes);
+                
+            } catch (error) {
+                console.error('Error updating like:', error);
+            }
+        });
+    }
+    
+    if (dislikeBtn) {
+        dislikeBtn.addEventListener('click', async () => {
+            if (!currentVideoId) return;
+            
+            try {
+                const video = await db.getVideo(currentVideoId);
+                let newDislikes = video.dislikes || 0;
+                
+                if (userDisliked) {
+                    newDislikes--;
+                    dislikeBtn.classList.remove('disliked');
+                    dislikeBtn.innerHTML = '<i class="far fa-thumbs-down"></i><span>' + formatNumber(newDislikes) + '</span>';
+                } else {
+                    newDislikes++;
+                    dislikeBtn.classList.add('disliked');
+                    dislikeBtn.innerHTML = '<i class="fas fa-thumbs-down"></i><span>' + formatNumber(newDislikes) + '</span>';
+                    
+                    if (userLiked) {
+                        userLiked = false;
+                        const newLikes = Math.max(0, (video.likes || 0) - 1);
+                        likeBtn.classList.remove('liked');
+                        likeBtn.innerHTML = '<i class="far fa-thumbs-up"></i><span>' + formatNumber(newLikes) + '</span>';
+                        await db.updateVideo(currentVideoId, { likes: newLikes });
+                    }
+                }
+                
+                userDisliked = !userDisliked;
+                await db.updateVideo(currentVideoId, { dislikes: newDislikes });
+                document.getElementById('dislike-count').textContent = formatNumber(newDislikes);
+                
+            } catch (error) {
+                console.error('Error updating dislike:', error);
+            }
+        });
+    }
+    
+    if (subscribeBtn) {
+        subscribeBtn.addEventListener('click', async () => {
+            if (!currentVideoId) return;
+            
+            try {
+                const video = await db.getVideo(currentVideoId);
+                let newSubscribers = video.subscribers || 0;
+                
+                if (userSubscribed) {
+                    newSubscribers--;
+                    subscribeBtn.innerHTML = '<i class="fas fa-bell"></i> Подписаться';
+                    subscribeBtn.classList.remove('subscribed');
+                } else {
+                    newSubscribers++;
+                    subscribeBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Вы подписаны';
+                    subscribeBtn.classList.add('subscribed');
+                }
+                
+                userSubscribed = !userSubscribed;
+                await db.updateVideo(currentVideoId, { subscribers: newSubscribers });
+                document.getElementById('channel-subs').textContent = formatNumber(newSubscribers) + ' подписчиков';
+                
+            } catch (error) {
+                console.error('Error updating subscription:', error);
+            }
+        });
+    }
+}
+
+function setupUploadForm() {
+    const uploadBtn = document.getElementById('upload-submit-btn');
+    
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', async () => {
+            const url = document.getElementById('video-url').value.trim();
+            const title = document.getElementById('video-title').value.trim();
+            const description = document.getElementById('video-description').value.trim();
+            const channelName = document.getElementById('channel-name').value.trim();
+            const channelAvatar = document.getElementById('channel-avatar').value.trim().charAt(0);
+            
+            if (!url || !title || !channelName) {
+                alert('Пожалуйста, заполните все обязательные поля');
+                return;
+            }
+            
+            const youTubeId = extractYouTubeId(url);
+            if (!youTubeId) {
+                alert('Некорректная ссылка на YouTube видео');
+                return;
+            }
+            
+            const videoData = {
+                url,
+                title,
+                description,
+                channelName,
+                channelAvatar,
+                timestamp: Date.now()
+            };
+            
+            try {
+                await db.addVideo(videoData);
+                alert('Видео успешно загружено!');
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Error uploading video:', error);
+                alert('Ошибка при загрузке видео');
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
+        loadHomePage();
+    }
+    
+    if (window.location.pathname.includes('upload.html')) {
+        setupUploadForm();
+    }
+    
+    const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
+    
+    if (searchInput && searchButton) {
+        searchButton.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                alert('Поиск: ' + query + ' (функция поиска в разработке)');
+            }
+        });
+        
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchButton.click();
+            }
+        });
+    }
+    
+    const menuToggle = document.querySelector('.menu-toggle');
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                sidebar.style.display = sidebar.style.display === 'none' ? 'block' : 'none';
+            }
+        });
+    }
+});

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Канал - BAHRTUBE</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-left">
+                <div class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+                <div class="logo" onclick="window.location.href='index.html'">
+                    <i class="fab fa-youtube" style="color: #ff0000; margin-right: 8px;"></i>
+                    <h1>BAHRTUBE</h1>
+                </div>
+            </div>
+            <div class="search-bar">
+                <input type="text" placeholder="Поиск видео...">
+                <button><i class="fas fa-search"></i></button>
+            </div>
+            <div class="header-right">
+                <div class="user-menu" id="user-menu"></div>
+            </div>
+        </header>
+
+        <main class="channel-page">
+            <div class="channel-header">
+                <div class="channel-avatar-large" id="channel-avatar-large">А</div>
+                <div class="channel-info">
+                    <h1 class="channel-name-large" id="channel-name-large">Имя канала</h1>
+                    <div class="channel-stats">
+                        <span id="channel-subscribers">0 подписчиков</span>
+                        <span id="channel-videos-count">0 видео</span>
+                        <span id="channel-views">0 просмотров</span>
+                    </div>
+                    <p class="channel-description" id="channel-description">Описание канала</p>
+                    <div class="channel-actions">
+                        <button class="subscribe-btn" id="channel-subscribe-btn">
+                            <i class="fas fa-bell"></i> Подписаться
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="channel-tabs">
+                <button class="channel-tab active" onclick="showTab('videos')">Видео</button>
+                <button class="channel-tab" onclick="showTab('about')">О канале</button>
+            </div>
+            
+            <div id="videos-tab" class="tab-content">
+                <div class="channel-videos-grid" id="channel-videos">
+                </div>
+            </div>
+            
+            <div id="about-tab" class="tab-content" style="display: none;">
+                <div class="about-section">
+                    <h3>Информация о канале</h3>
+                    <p id="channel-about">Нет информации</p>
+                    <p>Дата регистрации: <span id="channel-created"></span></p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="script.js"></script>
+    <script>
+        let currentChannelId = null;
+        
+        async function loadChannelPage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const channelId = urlParams.get('id');
+            
+            if (!channelId) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            currentChannelId = channelId;
+            
+            try {
+                const user = await db.getUser(channelId);
+                if (!user) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                document.getElementById('channel-avatar-large').textContent = user.avatar || user.name?.charAt(0) || 'А';
+                document.getElementById('channel-name-large').textContent = user.name || 'Пользователь';
+                document.getElementById('channel-subscribers').textContent = formatNumber(user.subscribers || 0) + ' подписчиков';
+                document.getElementById('channel-views').textContent = formatNumber(user.views || 0) + ' просмотров';
+                document.getElementById('channel-created').textContent = formatDate(user.createdAt);
+                
+                const videos = await db.getUserVideos(channelId);
+                const videosCount = Object.keys(videos || {}).length;
+                document.getElementById('channel-videos-count').textContent = videosCount + ' видео';
+                
+                const videosGrid = document.getElementById('channel-videos');
+                if (videosCount === 0) {
+                    videosGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px; color: #aaa;">Нет загруженных видео</p>';
+                } else {
+                    const videoArray = Object.values(videos);
+                    const sortedVideos = videoArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                    
+                    const videoCards = sortedVideos.map(video => {
+                        const youTubeId = extractYouTubeId(video.url);
+                        return `
+                            <div class="video-card" onclick="window.location.href='video.html?id=${video.id}'">
+                                <div class="video-thumbnail">
+                                    <img src="${generateThumbnail(youTubeId)}" alt="${video.title}" onerror="this.src='https://via.placeholder.com/320x180/252525/ffffff?text=No+Preview'">
+                                </div>
+                                <div class="video-details">
+                                    <h3>${video.title}</h3>
+                                    <div class="video-stats">
+                                        <span>${formatNumber(video.views || 0)} просмотров</span>
+                                        <span>•</span>
+                                        <span>${formatDate(video.timestamp)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    videosGrid.innerHTML = videoCards;
+                }
+                
+                setupChannelInteractions();
+                
+            } catch (error) {
+                console.error('Error loading channel:', error);
+            }
+        }
+        
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            document.querySelectorAll('.channel-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabName + '-tab').style.display = 'block';
+            event.target.classList.add('active');
+        }
+        
+        async function setupChannelInteractions() {
+            const subscribeBtn = document.getElementById('channel-subscribe-btn');
+            
+            if (subscribeBtn && currentUser && currentChannelId !== currentUser.uid) {
+                const isSubscribed = await db.isSubscribed(currentUser.uid, currentChannelId);
+                
+                if (isSubscribed) {
+                    subscribeBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Вы подписаны';
+                    subscribeBtn.classList.add('subscribed');
+                }
+                
+                subscribeBtn.addEventListener('click', async () => {
+                    if (!currentUser) {
+                        showAuthModal();
+                        return;
+                    }
+                    
+                    try {
+                        const isSubscribed = await db.isSubscribed(currentUser.uid, currentChannelId);
+                        
+                        if (isSubscribed) {
+                            await db.unsubscribe(currentUser.uid, currentChannelId);
+                            subscribeBtn.innerHTML = '<i class="fas fa-bell"></i> Подписаться';
+                            subscribeBtn.classList.remove('subscribed');
+                        } else {
+                            await db.subscribe(currentUser.uid, currentChannelId);
+                            subscribeBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Вы подписаны';
+                            subscribeBtn.classList.add('subscribed');
+                        }
+                        
+                        const user = await db.getUser(currentChannelId);
+                        document.getElementById('channel-subscribers').textContent = formatNumber(user.subscribers || 0) + ' подписчиков';
+                        
+                    } catch (error) {
+                        console.error('Error updating subscription:', error);
+                    }
+                });
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', loadChannelPage);
+    </script>
+</body>
+</html>

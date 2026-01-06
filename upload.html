@@ -24,7 +24,9 @@
                 <button><i class="fas fa-search"></i></button>
             </div>
             <div class="header-right">
-                <div class="user-menu" id="user-menu"></div>
+                <button class="upload-btn" onclick="window.location.href='upload.html'">
+                    <i class="fas fa-upload"></i> Загрузить
+                </button>
             </div>
         </header>
 
@@ -34,7 +36,7 @@
                 <p>Поделитесь видео с миром</p>
             </div>
             
-            <div class="upload-form" id="upload-form">
+            <div class="upload-form">
                 <div class="form-group">
                     <label for="video-url">Ссылка на YouTube видео</label>
                     <input type="text" id="video-url" placeholder="https://www.youtube.com/watch?v=...">
@@ -51,6 +53,16 @@
                     <textarea id="video-description" rows="4" placeholder="Расскажите о вашем видео"></textarea>
                 </div>
                 
+                <div class="form-group">
+                    <label for="channel-name">Имя канала</label>
+                    <input type="text" id="channel-name" placeholder="Введите имя канала">
+                </div>
+                
+                <div class="form-group">
+                    <label for="channel-avatar">Аватар канала (первая буква)</label>
+                    <input type="text" id="channel-avatar" maxlength="1" placeholder="А">
+                </div>
+                
                 <div class="form-actions">
                     <button type="button" class="cancel-btn" onclick="window.location.href='index.html'">
                         Отмена
@@ -64,54 +76,7 @@
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="script.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const uploadBtn = document.getElementById('upload-submit-btn');
-            
-            if (uploadBtn) {
-                uploadBtn.addEventListener('click', async () => {
-                    if (!currentUser) {
-                        alert('Для загрузки видео необходимо войти в аккаунт');
-                        window.location.href = 'index.html';
-                        return;
-                    }
-                    
-                    const url = document.getElementById('video-url').value.trim();
-                    const title = document.getElementById('video-title').value.trim();
-                    const description = document.getElementById('video-description').value.trim();
-                    
-                    if (!url || !title) {
-                        alert('Пожалуйста, заполните все обязательные поля');
-                        return;
-                    }
-                    
-                    const youTubeId = extractYouTubeId(url);
-                    if (!youTubeId) {
-                        alert('Некорректная ссылка на YouTube видео');
-                        return;
-                    }
-                    
-                    const videoData = {
-                        url,
-                        title,
-                        description,
-                        timestamp: Date.now()
-                    };
-                    
-                    try {
-                        const videoId = await db.addVideo(currentUser.uid, videoData);
-                        alert('Видео успешно загружено!');
-                        window.location.href = `video.html?id=${videoId}`;
-                    } catch (error) {
-                        console.error('Error uploading video:', error);
-                        alert('Ошибка при загрузке видео');
-                    }
-                });
-            }
-        });
-    </script>
 </body>
 </html>

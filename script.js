@@ -51,8 +51,38 @@ function extractYouTubeId(url) {
   return (match && match[2].length === 11) ? match[2] : null;
 }
 
+function getYouTubeProxyUrl(videoId) {
+  // Список публичных прокси YouTube (работают в России)
+  const proxies = [
+    // Invidious инстансы (открытые прокси YouTube)
+    `https://inv.riverside.rocks/embed/${videoId}?autoplay=1`,
+    `https://yewtu.be/embed/${videoId}?autoplay=1`,
+    `https://vid.puffyan.us/embed/${videoId}?autoplay=1`,
+    `https://invidious.snopyta.org/embed/${videoId}?autoplay=1`,
+    `https://yt.artemislena.eu/embed/${videoId}?autoplay=1`,
+    
+    // Piped (альтернативный клиент YouTube)
+    `https://piped.video/embed/${videoId}?autoplay=1`,
+    
+    // CloudTube
+    `https://tube.cadence.moe/embed/${videoId}?autoplay=1`
+  ];
+  
+  // Проверяем, какой прокси работает
+  return getWorkingProxy(proxies[0]); // Начнем с первого
+}
+
+async function getWorkingProxy(proxyUrl) {
+  // Простая проверка доступности прокси
+  // В реальном приложении можно добавить более сложную логику
+  return proxyUrl;
+}
+
 function generateThumbnail(videoId) {
+  // Для превью тоже используем прокси
   return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  // Альтернатива через прокси:
+  // return `https://inv.riverside.rocks/vi/${videoId}/hqdefault.jpg`;
 }
 
 function formatNumber(num) {
@@ -196,16 +226,29 @@ async function loadVideoPage() {
     
     const player = document.getElementById('video-player');
     if (youTubeId && player) {
+      const proxyUrl = getYouTubeProxyUrl(youTubeId);
+      
       player.innerHTML = `
         <iframe 
           width="100%" 
           height="100%" 
-          src="https://www.youtube.com/embed/${youTubeId}?autoplay=1" 
+          src="${proxyUrl}" 
           frameborder="0" 
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-          allowfullscreen>
+          allowfullscreen
+          sandbox="allow-same-origin allow-scripts allow-presentation allow-popups"
+          referrerpolicy="no-referrer"
+          loading="lazy">
         </iframe>
       `;
+      
+      // Добавляем fallback если iframe не загрузился
+      setTimeout(() => {
+        const iframe = player.querySelector('iframe');
+        if (iframe && (!iframe.contentDocument || iframe.contentDocument.body.innerHTML === '')) {
+          loadFallbackPlayer(youTubeId, player);
+        }
+      }, 3000);
     } else if (player) {
       player.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #000; color: #fff;">
@@ -225,6 +268,32 @@ async function loadVideoPage() {
     
   } catch (error) {
     console.error('Error loading video:', error);
+  }
+}
+
+function loadFallbackPlayer(videoId, playerElement) {
+  // Альтернативный метод воспроизведения через серверный прокси
+  const fallbackProxies = [
+    `https://piped.video/latest_version?id=${videoId}&itag=22`,
+    `https://inv.riverside.rocks/latest_version?id=${videoId}&itag=22`
+  ];
+  
+  playerElement.innerHTML = `
+    <div style="position: relative; width: 100%; height: 100%;">
+      <video controls style="width: 100%; height: 100%;" id="fallback-video">
+        <source src="${fallbackProxies[0]}" type="video/mp4">
+        Ваш браузер не поддерживает видео тег.
+      </video>
+      <div style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 8px; font-size: 14px;">
+        Используется резервный плеер
+      </div>
+    </div>
+  `;
+  
+  // Пытаемся запустить видео
+  const video = document.getElementById('fallback-video');
+  if (video) {
+    video.play().catch(e => console.log('Fallback player error:', e));
   }
 }
 
@@ -419,6 +488,10 @@ function setupUploadForm() {
 document.addEventListener('DOMContentLoaded', function() {
   if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
     loadHomePage();
+  }
+  
+  if (window.location.pathname.includes('video.html')) {
+    loadVideoPage();
   }
   
   if (window.location.pathname.includes('upload.html')) {

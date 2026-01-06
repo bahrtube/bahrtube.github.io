@@ -8,29 +8,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div id="auth-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Вход / Регистрация</h2>
-            <div class="auth-form">
-                <input type="email" id="auth-email" placeholder="Email">
-                <input type="password" id="auth-password" placeholder="Пароль">
-                <div class="auth-buttons">
-                    <button id="login-btn">Войти</button>
-                    <button id="register-btn">Зарегистрироваться</button>
-                </div>
-                <div id="auth-message"></div>
-            </div>
-        </div>
-    </div>
-
     <div class="container">
         <header class="header">
             <div class="header-left">
                 <div class="menu-toggle">
                     <i class="fas fa-bars"></i>
                 </div>
-                <div class="logo" onclick="window.location.href='index.html'">
+                <div class="logo">
                     <i class="fab fa-youtube" style="color: #ff0000; margin-right: 8px;"></i>
                     <h1>BAHRTUBE</h1>
                 </div>
@@ -40,14 +24,12 @@
                 <button id="search-button"><i class="fas fa-search"></i></button>
             </div>
             <div class="header-right">
-                <button class="upload-btn" onclick="checkAuthBeforeUpload()">
+                <button class="upload-btn" onclick="window.location.href='upload.html'">
                     <i class="fas fa-upload"></i> Загрузить
                 </button>
-                <div class="user-menu" id="user-menu">
-                    <button class="auth-btn" id="auth-btn">
-                        <i class="fas fa-user"></i> Войти
-                    </button>
-                </div>
+                <button class="auth-btn" id="auth-btn">
+                    <i class="fas fa-user"></i> Войти
+                </button>
             </div>
         </header>
 
@@ -57,26 +39,15 @@
                     <a href="index.html" class="nav-item">
                         <i class="fas fa-home"></i> Главная
                     </a>
-                    <a href="trending.html" class="nav-item">
+                    <a href="#" class="nav-item">
                         <i class="fas fa-fire"></i> В тренде
                     </a>
-                    <a href="history.html" class="nav-item">
+                    <a href="#" class="nav-item">
                         <i class="fas fa-history"></i> История
                     </a>
-                    <a href="subscriptions.html" class="nav-item">
-                        <i class="fas fa-users"></i> Подписки
-                    </a>
                     <div class="sidebar-divider"></div>
-                    <h3 class="sidebar-title">Каналы</h3>
-                    <div id="channels-list">
-                        <div class="subscription-item">
-                            <div class="subscription-avatar">Т</div>
-                            <span>ТехноБлог</span>
-                        </div>
-                        <div class="subscription-item">
-                            <div class="subscription-avatar">И</div>
-                            <span>Игровой Мир</span>
-                        </div>
+                    <h3 class="sidebar-title">Подписки</h3>
+                    <div id="subscriptions-list">
                     </div>
                 </nav>
             </aside>
@@ -130,52 +101,11 @@
                         <h3>Описание</h3>
                         <p id="video-description">Описание видео</p>
                     </div>
-                    
-                    <div class="comments-section">
-                        <div class="comments-header">
-                            <div class="comments-count" id="comments-count">0 комментариев</div>
-                            <select class="sort-comments">
-                                <option>Сначала новые</option>
-                                <option>Сначала популярные</option>
-                            </select>
-                        </div>
-                        
-                        <div class="add-comment" id="comment-form-container">
-                            <div class="comment-avatar" id="current-user-avatar">А</div>
-                            <div class="comment-input-container">
-                                <form id="comment-form">
-                                    <input type="text" class="comment-input" id="comment-input" placeholder="Добавить комментарий..." required>
-                                    <div class="comment-buttons">
-                                        <button type="button" class="comment-btn cancel-comment" onclick="document.getElementById('comment-input').value=''">Отмена</button>
-                                        <button type="submit" class="comment-btn submit-comment">Комментировать</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                        
-                        <div class="comments-list" id="comments-list">
-                            <p style="color: #aaa; text-align: center; padding: 20px;">Загрузка комментариев...</p>
-                        </div>
-                    </div>
                 </div>
                 
                 <div class="recommendations-sidebar">
                     <h3>Рекомендации</h3>
                     <div class="recommendations-list" id="recommendations-list">
-                        <div class="recommendation-card">
-                            <div class="recommendation-thumbnail">
-                                <img src="https://via.placeholder.com/168x94/252525/ffffff?text=Загрузка" alt="Загрузка">
-                            </div>
-                            <div class="recommendation-info">
-                                <h4>Загрузка рекомендаций...</h4>
-                                <div class="recommendation-channel">BAHRTUBE</div>
-                                <div class="recommendation-stats">
-                                    <span>0 просмотров</span>
-                                    <span>•</span>
-                                    <span>Недавно</span>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </main>
@@ -183,325 +113,13 @@
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="script.js"></script>
     <script>
-        async function loadVideoPage() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const videoId = urlParams.get('id');
-            
-            if (!videoId) {
-                window.location.href = 'index.html';
-                return;
-            }
-            
-            currentVideoId = videoId;
-            
-            try {
-                const video = await db.getVideo(videoId);
-                if (!video) {
-                    window.location.href = 'index.html';
-                    return;
-                }
-                
-                const user = await db.getUser(video.userId);
-                const youTubeId = extractYouTubeId(video.url);
-                
-                // Обновляем информацию о видео
-                document.getElementById('video-title').textContent = video.title || 'Без названия';
-                document.getElementById('video-views').textContent = formatNumber(video.views || 0) + ' просмотров';
-                document.getElementById('video-date').textContent = formatDate(video.timestamp);
-                document.getElementById('like-count').textContent = formatNumber(video.likes || 0);
-                document.getElementById('dislike-count').textContent = formatNumber(video.dislikes || 0);
-                document.getElementById('channel-name').textContent = user?.name || 'Автор';
-                document.getElementById('channel-subs').textContent = formatNumber(user?.subscribers || 0) + ' подписчиков';
-                document.getElementById('channel-avatar').textContent = user?.avatar || (user?.name?.charAt(0) || 'А');
-                document.getElementById('channel-avatar').onclick = () => window.location.href = `channel.html?id=${video.userId}`;
-                document.getElementById('video-description').textContent = video.description || 'Нет описания';
-                
-                // Обновляем аватар текущего пользователя
-                if (currentUser) {
-                    document.getElementById('current-user-avatar').textContent = currentUser.email?.charAt(0).toUpperCase() || 'А';
-                } else {
-                    document.getElementById('comment-form-container').style.display = 'none';
-                }
-                
-                // Загружаем YouTube видео
-                const player = document.getElementById('video-player');
-                if (youTubeId && player) {
-                    player.innerHTML = `
-                        <iframe 
-                            width="100%" 
-                            height="100%" 
-                            src="https://www.youtube.com/embed/${youTubeId}?autoplay=1" 
-                            frameborder="0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowfullscreen>
-                        </iframe>
-                    `;
-                } else if (player) {
-                    player.innerHTML = `
-                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #000; color: #fff;">
-                            <div style="text-align: center;">
-                                <h3>Ошибка загрузки видео</h3>
-                                <p>Неверная ссылка на YouTube</p>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                // Увеличиваем счетчик просмотров
-                await db.updateVideo(videoId, { views: (video.views || 0) + 1 });
-                
-                // Загружаем рекомендации
-                await loadRecommendations(videoId);
-                
-                // Загружаем комментарии
-                await loadComments(videoId);
-                
-                // Настраиваем взаимодействия
-                setupVideoInteractions(video.userId);
-                
-            } catch (error) {
-                console.error('Error loading video:', error);
-            }
-        }
-        
-        async function loadRecommendations(currentVideoId) {
-            try {
-                const videos = await db.getAllVideos();
-                const recommendationsList = document.getElementById('recommendations-list');
-                
-                if (!recommendationsList) return;
-                
-                if (!videos) {
-                    recommendationsList.innerHTML = '<p style="color: #aaa; padding: 20px;">Нет рекомендаций</p>';
-                    return;
-                }
-                
-                const videoArray = Object.values(videos);
-                const recommendations = videoArray
-                    .filter(video => video && video.id !== currentVideoId)
-                    .sort(() => Math.random() - 0.5)
-                    .slice(0, 5);
-                
-                if (recommendations.length === 0) {
-                    recommendationsList.innerHTML = '<p style="color: #aaa; padding: 20px;">Нет рекомендаций</p>';
-                    return;
-                }
-                
-                const recommendationCards = await Promise.all(recommendations.map(async (video) => {
-                    const user = await db.getUser(video.userId);
-                    const youTubeId = extractYouTubeId(video.url);
-                    
-                    return `
-                        <div class="recommendation-card" onclick="window.location.href='video.html?id=${video.id}'">
-                            <div class="recommendation-thumbnail">
-                                <img src="${generateThumbnail(youTubeId)}" alt="${video.title}" onerror="this.src='https://via.placeholder.com/168x94/252525/ffffff?text=No+Preview'">
-                            </div>
-                            <div class="recommendation-info">
-                                <h4>${video.title}</h4>
-                                <div class="recommendation-channel">${user?.name || 'Автор'}</div>
-                                <div class="recommendation-stats">
-                                    <span>${formatNumber(video.views || 0)} просмотров</span>
-                                    <span>•</span>
-                                    <span>${formatDate(video.timestamp)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }));
-                
-                recommendationsList.innerHTML = recommendationCards.join('');
-                    
-            } catch (error) {
-                console.error('Error loading recommendations:', error);
-            }
-        }
-        
-        async function loadComments(videoId) {
-            try {
-                const comments = await db.getComments(videoId);
-                const commentsList = document.getElementById('comments-list');
-                
-                if (!commentsList) return;
-                
-                if (!comments || Object.keys(comments).length === 0) {
-                    commentsList.innerHTML = '<p style="color: #aaa; text-align: center; padding: 20px;">Нет комментариев</p>';
-                    document.getElementById('comments-count').textContent = '0 комментариев';
-                    return;
-                }
-                
-                const commentArray = Object.values(comments);
-                const sortedComments = commentArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                
-                const commentItems = await Promise.all(sortedComments.map(async (comment) => {
-                    const user = await db.getUser(comment.userId);
-                    return `
-                        <div class="comment">
-                            <div class="comment-avatar" onclick="window.location.href='channel.html?id=${comment.userId}'">
-                                ${user?.avatar || user?.name?.charAt(0) || 'А'}
-                            </div>
-                            <div class="comment-content">
-                                <div class="comment-header">
-                                    <span class="comment-author" onclick="window.location.href='channel.html?id=${comment.userId}'">
-                                        ${user?.name || 'Пользователь'}
-                                    </span>
-                                    <span class="comment-time">${formatDate(comment.timestamp)}</span>
-                                </div>
-                                <div class="comment-text">${comment.text}</div>
-                                <div class="comment-actions">
-                                    <button class="comment-action">
-                                        <i class="far fa-thumbs-up"></i> ${comment.likes || 0}
-                                    </button>
-                                    <button class="comment-action">Ответить</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }));
-                
-                commentsList.innerHTML = commentItems.join('');
-                document.getElementById('comments-count').textContent = `${commentArray.length} комментариев`;
-                
-            } catch (error) {
-                console.error('Error loading comments:', error);
-                commentsList.innerHTML = '<p style="color: #ff4444; text-align: center; padding: 20px;">Ошибка загрузки комментариев</p>';
-            }
-        }
-        
-        async function setupVideoInteractions(channelId) {
-            const likeBtn = document.getElementById('like-btn');
-            const dislikeBtn = document.getElementById('dislike-btn');
-            const subscribeBtn = document.getElementById('subscribe-btn');
-            const commentForm = document.getElementById('comment-form');
-            
-            // Настройка лайков
-            if (likeBtn && currentUser) {
-                const isLiked = await db.isLiked(currentVideoId, currentUser.uid);
-                if (isLiked) {
-                    likeBtn.classList.add('liked');
-                    likeBtn.innerHTML = '<i class="fas fa-thumbs-up"></i><span>' + formatNumber((await db.getVideo(currentVideoId)).likes || 0) + '</span>';
-                }
-                
-                likeBtn.addEventListener('click', async () => {
-                    if (!currentUser) {
-                        showAuthModal();
-                        return;
-                    }
-                    
-                    try {
-                        const isLiked = await db.isLiked(currentVideoId, currentUser.uid);
-                        if (isLiked) {
-                            await db.unlikeVideo(currentVideoId, currentUser.uid);
-                            likeBtn.classList.remove('liked');
-                            likeBtn.innerHTML = '<i class="far fa-thumbs-up"></i><span>' + formatNumber((await db.getVideo(currentVideoId)).likes || 0) + '</span>';
-                        } else {
-                            await db.likeVideo(currentVideoId, currentUser.uid);
-                            likeBtn.classList.add('liked');
-                            likeBtn.innerHTML = '<i class="fas fa-thumbs-up"></i><span>' + formatNumber((await db.getVideo(currentVideoId)).likes || 0) + '</span>';
-                        }
-                        
-                        const video = await db.getVideo(currentVideoId);
-                        document.getElementById('like-count').textContent = formatNumber(video.likes || 0);
-                        
-                    } catch (error) {
-                        console.error('Error updating like:', error);
-                    }
-                });
-            }
-            
-            // Настройка подписки
-            if (subscribeBtn && currentUser && channelId !== currentUser.uid) {
-                const isSubscribed = await db.isSubscribed(currentUser.uid, channelId);
-                
-                if (isSubscribed) {
-                    subscribeBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Вы подписаны';
-                    subscribeBtn.classList.add('subscribed');
-                }
-                
-                subscribeBtn.addEventListener('click', async () => {
-                    if (!currentUser) {
-                        showAuthModal();
-                        return;
-                    }
-                    
-                    try {
-                        const isSubscribed = await db.isSubscribed(currentUser.uid, channelId);
-                        
-                        if (isSubscribed) {
-                            await db.unsubscribe(currentUser.uid, channelId);
-                            subscribeBtn.innerHTML = '<i class="fas fa-bell"></i> Подписаться';
-                            subscribeBtn.classList.remove('subscribed');
-                        } else {
-                            await db.subscribe(currentUser.uid, channelId);
-                            subscribeBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Вы подписаны';
-                            subscribeBtn.classList.add('subscribed');
-                        }
-                        
-                        const user = await db.getUser(channelId);
-                        document.getElementById('channel-subs').textContent = formatNumber(user.subscribers || 0) + ' подписчиков';
-                        
-                    } catch (error) {
-                        console.error('Error updating subscription:', error);
-                    }
-                });
-            }
-            
-            // Настройка комментариев
-            if (commentForm && currentUser) {
-                commentForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const commentInput = document.getElementById('comment-input');
-                    const commentText = commentInput.value.trim();
-                    
-                    if (!commentText) return;
-                    
-                    try {
-                        await db.addComment(currentVideoId, currentUser.uid, commentText);
-                        commentInput.value = '';
-                        await loadComments(currentVideoId);
-                    } catch (error) {
-                        console.error('Error adding comment:', error);
-                        alert('Ошибка при добавлении комментария');
-                    }
-                });
-            }
-        }
-        
         document.addEventListener('DOMContentLoaded', function() {
             loadVideoPage();
-            
-            // Настройка поиска
-            const searchInput = document.getElementById('search-input');
-            const searchButton = document.getElementById('search-button');
-            
-            if (searchInput && searchButton) {
-                searchButton.addEventListener('click', () => {
-                    const query = searchInput.value.trim();
-                    if (query) {
-                        alert('Поиск: ' + query + ' (функция поиска в разработке)');
-                    }
-                });
-                
-                searchInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        searchButton.click();
-                    }
-                });
-            }
-            
-            // Настройка меню
-            const menuToggle = document.querySelector('.menu-toggle');
-            if (menuToggle) {
-                menuToggle.addEventListener('click', () => {
-                    const sidebar = document.querySelector('.sidebar');
-                    if (sidebar) {
-                        sidebar.style.display = sidebar.style.display === 'none' ? 'block' : 'none';
-                    }
-                });
-            }
         });
     </script>
 </body>

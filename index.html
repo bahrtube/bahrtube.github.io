@@ -6,6 +6,7 @@
     <title>BAHRTUBE</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -14,22 +15,56 @@
                 <div class="menu-toggle">
                     <i class="fas fa-bars"></i>
                 </div>
-                <div class="logo">
-                    <i class="fab fa-youtube" style="color: #ff0000; margin-right: 8px;"></i>
+                <div class="logo" onclick="window.location.href='index.html'">
+                    <i class="fab fa-youtube"></i>
                     <h1>BAHRTUBE</h1>
                 </div>
             </div>
+            
             <div class="search-bar">
-                <input type="text" placeholder="Поиск видео..." id="search-input">
+                <input type="text" placeholder="Поиск видео или каналов..." id="search-input">
                 <button id="search-button"><i class="fas fa-search"></i></button>
+                <div class="search-suggestions" id="search-suggestions"></div>
             </div>
+            
             <div class="header-right">
-                <button class="upload-btn" onclick="window.location.href='upload.html'">
-                    <i class="fas fa-upload"></i> Загрузить
+                <button class="header-btn upload-btn" onclick="window.location.href='upload.html'">
+                    <i class="fas fa-upload"></i>
+                    <span>Загрузить</span>
                 </button>
-                <button class="auth-btn" id="auth-btn">
-                    <i class="fas fa-user"></i> Войти
-                </button>
+                <div class="user-menu" id="user-menu">
+                    <button class="header-btn auth-btn" id="auth-btn">
+                        <i class="fas fa-user"></i>
+                        <span>Войти</span>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div class="user-info" id="user-info">
+                            <div class="user-avatar" id="user-avatar">Г</div>
+                            <div class="user-details">
+                                <h4 id="user-name">Гость</h4>
+                                <span id="user-email">Войдите в аккаунт</span>
+                            </div>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="profile.html" class="dropdown-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>Мой канал</span>
+                        </a>
+                        <a href="subscriptions.html" class="dropdown-item">
+                            <i class="fas fa-newspaper"></i>
+                            <span>Подписки</span>
+                        </a>
+                        <a href="history.html" class="dropdown-item">
+                            <i class="fas fa-history"></i>
+                            <span>История</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item" id="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Выйти</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -37,41 +72,134 @@
             <aside class="sidebar">
                 <nav class="sidebar-nav">
                     <a href="index.html" class="nav-item active">
-                        <i class="fas fa-home"></i> Главная
+                        <i class="fas fa-home"></i>
+                        <span>Главная</span>
                     </a>
-                    <a href="#" class="nav-item">
-                        <i class="fas fa-fire"></i> В тренде
+                    <a href="trending.html" class="nav-item">
+                        <i class="fas fa-fire"></i>
+                        <span>В тренде</span>
                     </a>
-                    <a href="#" class="nav-item">
-                        <i class="fas fa-history"></i> История
+                    <a href="subscriptions.html" class="nav-item">
+                        <i class="fas fa-newspaper"></i>
+                        <span>Подписки</span>
+                    </a>
+                    <a href="library.html" class="nav-item">
+                        <i class="fas fa-folder"></i>
+                        <span>Библиотека</span>
+                    </a>
+                    <a href="history.html" class="nav-item">
+                        <i class="fas fa-history"></i>
+                        <span>История</span>
                     </a>
                     <div class="sidebar-divider"></div>
                     <h3 class="sidebar-title">Подписки</h3>
-                    <div id="subscriptions-list">
-                        <div class="subscription-item">
-                            <div class="subscription-avatar">Т</div>
-                            <span>ТехноБлог</span>
-                        </div>
-                        <div class="subscription-item">
-                            <div class="subscription-avatar">И</div>
-                            <span>Игровой Мир</span>
-                        </div>
+                    <div class="subscriptions-list" id="subscriptions-list">
+                        <div class="loading-spinner"></div>
                     </div>
+                    <div class="sidebar-divider"></div>
+                    <a href="channels.html" class="nav-item">
+                        <i class="fas fa-compass"></i>
+                        <span>Обзор каналов</span>
+                    </a>
                 </nav>
             </aside>
 
-            <main class="video-grid-container">
-                <div class="video-grid-header">
-                    <h2>Рекомендованные видео</h2>
+            <main class="content">
+                <div class="banner">
+                    <div class="banner-content">
+                        <h2>Добро пожаловать на BAHRTUBE</h2>
+                        <p>Смотрите лучшие видео, подписывайтесь на каналы и делитесь своими видео с миром</p>
+                        <button class="banner-btn" onclick="window.location.href='upload.html'">
+                            <i class="fas fa-upload"></i>
+                            <span>Загрузить видео</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="video-grid" id="video-grid">
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Рекомендуемые видео</h2>
+                        <a href="trending.html" class="see-all">Смотреть все</a>
+                    </div>
+                    <div class="video-grid" id="video-grid">
+                        <div class="loading-spinner large"></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Популярные каналы</h2>
+                        <a href="channels.html" class="see-all">Все каналы</a>
+                    </div>
+                    <div class="channels-grid" id="channels-grid">
+                        <div class="channel-card">
+                            <div class="channel-avatar large">Т</div>
+                            <h3>ТехноБлог</h3>
+                            <p>Технологии и обзоры</p>
+                            <button class="subscribe-btn">Подписаться</button>
+                        </div>
+                        <div class="channel-card">
+                            <div class="channel-avatar large">И</div>
+                            <h3>Игровой Мир</h3>
+                            <p>Игры и стримы</p>
+                            <button class="subscribe-btn">Подписаться</button>
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>
     </div>
 
+    <div class="modal" id="auth-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Вход в аккаунт</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login">Вход</button>
+                    <button class="auth-tab" data-tab="register">Регистрация</button>
+                </div>
+                
+                <form id="login-form" class="auth-form active">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" placeholder="email@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Пароль</label>
+                        <input type="password" id="login-password" placeholder="Введите пароль" required>
+                    </div>
+                    <button type="submit" class="auth-submit-btn">Войти</button>
+                </form>
+                
+                <form id="register-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="register-name">Имя пользователя</label>
+                        <input type="text" id="register-name" placeholder="Введите имя" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" placeholder="email@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Пароль</label>
+                        <input type="password" id="register-password" placeholder="Придумайте пароль" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-confirm">Подтвердите пароль</label>
+                        <input type="password" id="register-confirm" placeholder="Повторите пароль" required>
+                    </div>
+                    <button type="submit" class="auth-submit-btn">Зарегистрироваться</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="script.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

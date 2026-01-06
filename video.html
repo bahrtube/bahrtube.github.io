@@ -55,15 +55,7 @@
             <main class="video-page">
                 <div class="video-player-container">
                     <div class="video-player" id="video-player">
-                        <div class="video-loading">
-                            <i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i>
-                            Загрузка видео через прокси...
-                        </div>
-                    </div>
-                    
-                    <div class="proxy-notice" id="proxy-notice" style="background: #1a237e; color: white; padding: 10px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>Видео загружается через защищенный прокси-сервер (работает в России)</span>
+                        <div class="video-loading">Загрузка видео...</div>
                     </div>
                     
                     <div class="video-info">
@@ -122,6 +114,12 @@
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadVideoPage();
+        });
+    </script>
 </body>
 </html>

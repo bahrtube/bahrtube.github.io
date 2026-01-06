@@ -3,9 +3,9 @@ const firebaseConfig = {
     databaseURL: "https://flum-2-default-rtdb.firebaseio.com"
 };
 
-// Инициализируем Firebase только если еще не инициализирован
+// Инициализируем Firebase
 try {
-    if (firebase.apps.length === 0) {
+    if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
 } catch (error) {
@@ -291,11 +291,17 @@ function formatDate(timestamp) {
 
 // ==== ФУНКЦИИ ДЛЯ АВТОРИЗАЦИИ ====
 function showAuthModal() {
-    document.getElementById('auth-modal').style.display = 'block';
+    const modal = document.getElementById('auth-modal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
 }
 
 function hideAuthModal() {
-    document.getElementById('auth-modal').style.display = 'none';
+    const modal = document.getElementById('auth-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }
 
 function showMessage(text, type) {
@@ -427,8 +433,10 @@ async function logout() {
 function checkAuthBeforeUpload() {
     if (!currentUser) {
         showAuthModal();
+        return false;
     } else {
         window.location.href = 'upload.html';
+        return true;
     }
 }
 
@@ -452,7 +460,7 @@ function createVideoCard(video, user) {
                         ${user?.name || 'Автор'}
                     </div>
                     <div class="video-stats">
-                        <span>${formatNumber(video.views)} просмотров</span>
+                        <span>${formatNumber(video.views || 0)} просмотров</span>
                         <span>•</span>
                         <span>${formatDate(video.timestamp)}</span>
                     </div>
@@ -500,8 +508,11 @@ async function loadHomePage() {
 
 // ==== ИНИЦИАЛИЗАЦИЯ ====
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM загружен, инициализация...");
+    
     // Слушатель состояния авторизации
     auth.onAuthStateChanged((user) => {
+        console.log("Auth state changed:", user);
         updateUserUI(user);
     });
     
@@ -547,7 +558,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Загрузка главной страницы
-    if (window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname.includes('.html') === false) {
+    const path = window.location.pathname;
+    if (path.includes('index.html') || path === '/' || (path.includes('.html') === false && path.includes('/') === false)) {
+        console.log("Загрузка главной страницы...");
         loadHomePage();
     }
     
@@ -590,3 +603,4 @@ window.formatDate = formatDate;
 window.showAuthModal = showAuthModal;
 window.checkAuthBeforeUpload = checkAuthBeforeUpload;
 window.logout = logout;
+window.db = db;

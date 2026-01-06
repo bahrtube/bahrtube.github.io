@@ -14,7 +14,7 @@
                 <div class="menu-toggle">
                     <i class="fas fa-bars"></i>
                 </div>
-                <div class="logo">
+                <div class="logo" onclick="window.location.href='index.html'">
                     <i class="fab fa-youtube" style="color: #ff0000; margin-right: 8px;"></i>
                     <h1>BAHRTUBE</h1>
                 </div>
@@ -34,12 +34,12 @@
         </header>
 
         <div class="main-content">
-            <aside class="sidebar active">
+            <aside class="sidebar">
                 <nav class="sidebar-nav">
                     <a href="index.html" class="nav-item">
                         <i class="fas fa-home"></i> Главная
                     </a>
-                    <a href="#" class="nav-item">
+                    <a href="#" class="nav-item" onclick="showMobileTrending()">
                         <i class="fas fa-fire"></i> В тренде
                     </a>
                     <a href="#" class="nav-item">
@@ -101,5 +101,18 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="script.js"></script>
+    
+    <script>
+        // Адаптация под мобильные устройства
+        document.addEventListener('DOMContentLoaded', function() {
+            // Скрываем sidebar на мобильных при загрузке
+            if (window.innerWidth <= 768) {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                if (sidebar) sidebar.classList.add('closed');
+                if (mainContent) mainContent.classList.add('sidebar-hidden');
+            }
+        });
+    </script>
 </body>
 </html>

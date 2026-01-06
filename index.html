@@ -14,7 +14,7 @@
                 <div class="menu-toggle">
                     <i class="fas fa-bars"></i>
                 </div>
-                <div class="logo">
+                <div class="logo" onclick="window.location.href='index.html'">
                     <i class="fab fa-youtube" style="color: #ff0000; margin-right: 8px;"></i>
                     <h1>BAHRTUBE</h1>
                 </div>
@@ -24,7 +24,7 @@
                 <button id="search-button"><i class="fas fa-search"></i></button>
             </div>
             <div class="header-right">
-                <button class="upload-btn" onclick="window.location.href='upload.html'">
+                <button class="upload-btn" onclick="animateUploadButton()">
                     <i class="fas fa-upload"></i> <span>Загрузить</span>
                 </button>
                 <button class="auth-btn" id="auth-btn">
@@ -34,12 +34,12 @@
         </header>
 
         <div class="main-content">
-            <aside class="sidebar active">
+            <aside class="sidebar">
                 <nav class="sidebar-nav">
                     <a href="index.html" class="nav-item active">
                         <i class="fas fa-home"></i> Главная
                     </a>
-                    <a href="#" class="nav-item">
+                    <a href="#" class="nav-item" onclick="showMobileTrending()">
                         <i class="fas fa-fire"></i> В тренде
                     </a>
                     <a href="#" class="nav-item">
@@ -56,6 +56,14 @@
                             <div class="subscription-avatar">И</div>
                             <span>Игровой Мир</span>
                         </div>
+                        <div class="subscription-item">
+                            <div class="subscription-avatar">М</div>
+                            <span>Музыкальный канал</span>
+                        </div>
+                        <div class="subscription-item">
+                            <div class="subscription-avatar">К</div>
+                            <span>Кулинария</span>
+                        </div>
                     </div>
                 </nav>
             </aside>
@@ -63,8 +71,12 @@
             <main class="video-grid-container">
                 <div class="video-grid-header">
                     <h2>Рекомендованные видео</h2>
+                    <button class="video-action-btn" style="padding: 8px 16px;" onclick="loadHomePage()">
+                        <i class="fas fa-redo"></i> Обновить
+                    </button>
                 </div>
                 <div class="video-grid" id="video-grid">
+                    <!-- Видео будут загружены через JavaScript -->
                 </div>
             </main>
         </div>
@@ -73,5 +85,18 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="script.js"></script>
+    
+    <script>
+        // Адаптация под мобильные устройства
+        document.addEventListener('DOMContentLoaded', function() {
+            // Скрываем sidebar на мобильных при загрузке
+            if (window.innerWidth <= 768) {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                if (sidebar) sidebar.classList.add('closed');
+                if (mainContent) mainContent.classList.add('sidebar-hidden');
+            }
+        });
+    </script>
 </body>
 </html>

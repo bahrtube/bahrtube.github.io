@@ -12,15 +12,15 @@
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2>Вход / Регистрация</h2>
-            <div class="auth-form">
-                <input type="email" id="auth-email" placeholder="Email">
-                <input type="password" id="auth-password" placeholder="Пароль">
+            <form id="auth-form" class="auth-form">
+                <input type="email" id="auth-email" placeholder="Email" required>
+                <input type="password" id="auth-password" placeholder="Пароль" required>
                 <div class="auth-buttons">
-                    <button id="login-btn">Войти</button>
-                    <button id="register-btn">Зарегистрироваться</button>
+                    <button type="button" id="login-btn">Войти</button>
+                    <button type="button" id="register-btn">Зарегистрироваться</button>
                 </div>
                 <div id="auth-message"></div>
-            </div>
+            </form>
         </div>
     </div>
 
@@ -37,7 +37,7 @@
             </div>
             <div class="search-bar">
                 <input type="text" placeholder="Поиск видео..." id="search-input">
-                <button id="search-button"><i class="fas fa-search"></i></button>
+                <button type="button" id="search-button"><i class="fas fa-search"></i></button>
             </div>
             <div class="header-right">
                 <button class="upload-btn" onclick="checkAuthBeforeUpload()">
@@ -57,18 +57,23 @@
                     <a href="index.html" class="nav-item active">
                         <i class="fas fa-home"></i> Главная
                     </a>
-                    <a href="trending.html" class="nav-item">
+                    <a href="#" class="nav-item">
                         <i class="fas fa-fire"></i> В тренде
                     </a>
-                    <a href="history.html" class="nav-item">
+                    <a href="#" class="nav-item">
                         <i class="fas fa-history"></i> История
                     </a>
-                    <a href="subscriptions.html" class="nav-item">
-                        <i class="fas fa-users"></i> Подписки
-                    </a>
                     <div class="sidebar-divider"></div>
-                    <h3 class="sidebar-title">Каналы</h3>
-                    <div id="channels-list">
+                    <h3 class="sidebar-title">Подписки</h3>
+                    <div id="subscriptions-list">
+                        <div class="subscription-item">
+                            <div class="subscription-avatar">Т</div>
+                            <span>ТехноБлог</span>
+                        </div>
+                        <div class="subscription-item">
+                            <div class="subscription-avatar">И</div>
+                            <span>Игровой Мир</span>
+                        </div>
                     </div>
                 </nav>
             </aside>
@@ -84,8 +89,8 @@
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

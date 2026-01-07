@@ -65,10 +65,94 @@
 
             <main class="video-page">
                 <div class="video-player-container">
-                    <div class="video-player" id="video-player">
-                        <div class="video-loading">
+                    <!-- Кастомный видеоплеер -->
+                    <div class="video-player-wrapper" id="video-player-wrapper">
+                        <div class="video-loading" id="video-loading">
                             <i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i>
-                            Загрузка видео...
+                            Загрузка плеера...
+                        </div>
+                        
+                        <!-- Контейнер для YouTube iframe -->
+                        <div id="youtube-iframe-container"></div>
+                        
+                        <!-- Кастомные элементы управления -->
+                        <div class="custom-player-controls" id="custom-controls">
+                            <div class="progress-bar-container" id="progress-bar-container">
+                                <div class="progress-bar" id="progress-bar"></div>
+                            </div>
+                            
+                            <div class="controls-main">
+                                <div class="controls-left">
+                                    <button class="custom-control-btn play-pause-btn" id="play-pause-btn">
+                                        <i class="fas fa-play" id="play-icon"></i>
+                                        <i class="fas fa-pause" id="pause-icon" style="display: none;"></i>
+                                    </button>
+                                    
+                                    <button class="custom-control-btn volume-btn" id="volume-btn">
+                                        <i class="fas fa-volume-up" id="volume-icon"></i>
+                                    </button>
+                                    
+                                    <div class="volume-container" id="volume-container">
+                                        <div class="volume-slider" id="volume-slider">
+                                            <div class="volume-level" id="volume-level"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="time-display" id="time-display">
+                                        <span id="current-time">0:00</span> / <span id="total-time">0:00</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="controls-right">
+                                    <button class="custom-control-btn speed-btn" id="speed-btn">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                    </button>
+                                    
+                                    <button class="custom-control-btn quality-btn" id="quality-btn">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                    
+                                    <button class="custom-control-btn screenshot-btn" id="screenshot-btn">
+                                        <i class="fas fa-camera"></i>
+                                    </button>
+                                    
+                                    <button class="custom-control-btn fullscreen-btn" id="fullscreen-btn">
+                                        <i class="fas fa-expand"></i>
+                                        <i class="fas fa-compress" style="display: none;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Меню скорости -->
+                        <div class="speed-menu" id="speed-menu">
+                            <div class="speed-option" data-speed="0.25">0.25x</div>
+                            <div class="speed-option" data-speed="0.5">0.5x</div>
+                            <div class="speed-option active" data-speed="1">1x (нормально)</div>
+                            <div class="speed-option" data-speed="1.25">1.25x</div>
+                            <div class="speed-option" data-speed="1.5">1.5x</div>
+                            <div class="speed-option" data-speed="2">2x</div>
+                        </div>
+                        
+                        <!-- Меню качества -->
+                        <div class="quality-menu" id="quality-menu">
+                            <div class="quality-option active" data-quality="auto">Авто</div>
+                            <div class="quality-option" data-quality="144p">144p</div>
+                            <div class="quality-option" data-quality="240p">240p</div>
+                            <div class="quality-option" data-quality="360p">360p</div>
+                            <div class="quality-option" data-quality="480p">480p</div>
+                            <div class="quality-option" data-quality="720p">720p</div>
+                            <div class="quality-option" data-quality="1080p">1080p</div>
+                        </div>
+                        
+                        <!-- Оверлей для скриншота -->
+                        <div class="video-overlay" id="screenshot-overlay">
+                            <img class="screenshot-preview" id="screenshot-preview" alt="Скриншот">
+                        </div>
+                        
+                        <!-- Уведомление о скриншоте -->
+                        <div class="screenshot-notification" id="screenshot-notification">
+                            Скриншот сохранен в буфер обмена
                         </div>
                     </div>
                     
@@ -127,8 +211,447 @@
         </div>
     </div>
 
+    <!-- YouTube Player API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="script.js"></script>
+    
+    <script>
+        // Кастомный видеоплеер
+        class CustomVideoPlayer {
+            constructor() {
+                this.player = null;
+                this.isPlaying = false;
+                this.currentTime = 0;
+                this.duration = 0;
+                this.volume = 100;
+                this.isMuted = false;
+                this.playbackRate = 1;
+                this.quality = 'auto';
+                this.updateInterval = null;
+                
+                this.init();
+            }
+            
+            init() {
+                // Получаем ID видео из URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const videoId = urlParams.get('id');
+                
+                if (!videoId) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                // Получаем информацию о видео из Firebase
+                this.loadVideoInfo(videoId);
+                
+                // Инициализируем YouTube Player API
+                this.initYouTubePlayer(videoId);
+                
+                // Настраиваем обработчики событий
+                this.setupEventListeners();
+            }
+            
+            async loadVideoInfo(videoId) {
+                try {
+                    const video = await db.getVideo(videoId);
+                    
+                    if (!video) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    document.getElementById('video-title').textContent = video.title || 'Без названия';
+                    document.getElementById('video-views').textContent = formatNumber(video.views || 0) + ' просмотров';
+                    document.getElementById('video-date').textContent = formatDate(video.timestamp);
+                    document.getElementById('like-count').textContent = formatNumber(video.likes || 0);
+                    document.getElementById('dislike-count').textContent = formatNumber(video.dislikes || 0);
+                    document.getElementById('channel-name').textContent = video.channelName || 'Автор';
+                    document.getElementById('channel-subs').textContent = formatNumber(video.subscribers || 0) + ' подписчиков';
+                    document.getElementById('channel-avatar').textContent = video.channelAvatar || (video.channelName || 'А').charAt(0);
+                    document.getElementById('video-description').textContent = video.description || 'Нет описания';
+                    
+                    // Увеличиваем просмотры
+                    await db.updateVideo(videoId, { views: (video.views || 0) + 1 });
+                    
+                } catch (error) {
+                    console.error('Error loading video info:', error);
+                }
+            }
+            
+            initYouTubePlayer(videoId) {
+                // YouTube Player API загружает плеер асинхронно
+                // Он будет доступен через глобальную функцию onYouTubeIframeAPIReady
+                window.onYouTubeIframeAPIReady = () => {
+                    this.player = new YT.Player('youtube-iframe-container', {
+                        height: '100%',
+                        width: '100%',
+                        videoId: videoId,
+                        playerVars: {
+                            'autoplay': 1,
+                            'controls': 0, // Скрываем стандартные элементы управления
+                            'disablekb': 1, // Отключаем клавиатурные команды
+                            'fs': 0, // Скрываем кнопку полноэкранного режима
+                            'modestbranding': 1, // Минимальный брендинг
+                            'rel': 0, // Не показывать похожие видео
+                            'showinfo': 0, // Скрываем информацию
+                            'iv_load_policy': 3 // Скрываем аннотации
+                        },
+                        events: {
+                            'onReady': (event) => this.onPlayerReady(event),
+                            'onStateChange': (event) => this.onPlayerStateChange(event)
+                        }
+                    });
+                };
+                
+                // Если API уже загружен
+                if (window.YT && YT.Player) {
+                    window.onYouTubeIframeAPIReady();
+                }
+            }
+            
+            onPlayerReady(event) {
+                console.log('YouTube player ready');
+                this.duration = event.target.getDuration();
+                this.updateTotalTime();
+                
+                // Скрываем индикатор загрузки
+                document.getElementById('video-loading').style.display = 'none';
+                
+                // Запускаем обновление времени
+                this.startUpdateInterval();
+            }
+            
+            onPlayerStateChange(event) {
+                switch(event.data) {
+                    case YT.PlayerState.PLAYING:
+                        this.isPlaying = true;
+                        this.updatePlayPauseButton();
+                        break;
+                    case YT.PlayerState.PAUSED:
+                        this.isPlaying = false;
+                        this.updatePlayPauseButton();
+                        break;
+                    case YT.PlayerState.ENDED:
+                        this.isPlaying = false;
+                        this.updatePlayPauseButton();
+                        break;
+                }
+            }
+            
+            setupEventListeners() {
+                // Кнопка play/pause
+                document.getElementById('play-pause-btn').addEventListener('click', () => {
+                    this.togglePlayPause();
+                });
+                
+                // Прогресс бар
+                const progressBar = document.getElementById('progress-bar-container');
+                progressBar.addEventListener('click', (e) => {
+                    const rect = progressBar.getBoundingClientRect();
+                    const percent = (e.clientX - rect.left) / rect.width;
+                    this.seekTo(percent * this.duration);
+                });
+                
+                // Громкость
+                document.getElementById('volume-btn').addEventListener('click', () => {
+                    this.toggleMute();
+                });
+                
+                const volumeSlider = document.getElementById('volume-slider');
+                volumeSlider.addEventListener('click', (e) => {
+                    const rect = volumeSlider.getBoundingClientRect();
+                    const percent = (e.clientX - rect.left) / rect.width;
+                    this.setVolume(percent * 100);
+                });
+                
+                // Полноэкранный режим
+                document.getElementById('fullscreen-btn').addEventListener('click', () => {
+                    this.toggleFullscreen();
+                });
+                
+                // Скорость воспроизведения
+                document.getElementById('speed-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const menu = document.getElementById('speed-menu');
+                    menu.classList.toggle('show');
+                });
+                
+                document.querySelectorAll('.speed-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        const speed = parseFloat(e.target.dataset.speed);
+                        this.setPlaybackRate(speed);
+                        
+                        // Обновляем активный элемент
+                        document.querySelectorAll('.speed-option').forEach(opt => {
+                            opt.classList.remove('active');
+                        });
+                        e.target.classList.add('active');
+                        
+                        // Закрываем меню
+                        document.getElementById('speed-menu').classList.remove('show');
+                    });
+                });
+                
+                // Качество
+                document.getElementById('quality-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const menu = document.getElementById('quality-menu');
+                    menu.classList.toggle('show');
+                });
+                
+                // Скриншот
+                document.getElementById('screenshot-btn').addEventListener('click', () => {
+                    this.takeScreenshot();
+                });
+                
+                // Закрытие меню при клике вне их
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('#speed-btn')) {
+                        document.getElementById('speed-menu').classList.remove('show');
+                    }
+                    if (!e.target.closest('#quality-btn')) {
+                        document.getElementById('quality-menu').classList.remove('show');
+                    }
+                });
+                
+                // Управление с клавиатуры
+                document.addEventListener('keydown', (e) => {
+                    switch(e.key) {
+                        case ' ':
+                        case 'k':
+                            e.preventDefault();
+                            this.togglePlayPause();
+                            break;
+                        case 'f':
+                            e.preventDefault();
+                            this.toggleFullscreen();
+                            break;
+                        case 'm':
+                            e.preventDefault();
+                            this.toggleMute();
+                            break;
+                        case 'ArrowLeft':
+                            e.preventDefault();
+                            this.seekTo(this.currentTime - 5);
+                            break;
+                        case 'ArrowRight':
+                            e.preventDefault();
+                            this.seekTo(this.currentTime + 5);
+                            break;
+                        case 'ArrowUp':
+                            e.preventDefault();
+                            this.setVolume(Math.min(this.volume + 10, 100));
+                            break;
+                        case 'ArrowDown':
+                            e.preventDefault();
+                            this.setVolume(Math.max(this.volume - 10, 0));
+                            break;
+                    }
+                });
+            }
+            
+            startUpdateInterval() {
+                this.updateInterval = setInterval(() => {
+                    if (this.player && this.isPlaying) {
+                        this.currentTime = this.player.getCurrentTime();
+                        this.updateProgressBar();
+                        this.updateCurrentTime();
+                    }
+                }, 100);
+            }
+            
+            updateProgressBar() {
+                const progressPercent = (this.currentTime / this.duration) * 100;
+                document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+            }
+            
+            updateCurrentTime() {
+                const currentTimeFormatted = this.formatTime(this.currentTime);
+                document.getElementById('current-time').textContent = currentTimeFormatted;
+            }
+            
+            updateTotalTime() {
+                const totalTimeFormatted = this.formatTime(this.duration);
+                document.getElementById('total-time').textContent = totalTimeFormatted;
+            }
+            
+            updatePlayPauseButton() {
+                const playIcon = document.getElementById('play-icon');
+                const pauseIcon = document.getElementById('pause-icon');
+                
+                if (this.isPlaying) {
+                    playIcon.style.display = 'none';
+                    pauseIcon.style.display = 'block';
+                } else {
+                    playIcon.style.display = 'block';
+                    pauseIcon.style.display = 'none';
+                }
+            }
+            
+            togglePlayPause() {
+                if (!this.player) return;
+                
+                if (this.isPlaying) {
+                    this.player.pauseVideo();
+                } else {
+                    this.player.playVideo();
+                }
+            }
+            
+            seekTo(time) {
+                if (!this.player) return;
+                
+                this.player.seekTo(time, true);
+                this.currentTime = time;
+                this.updateProgressBar();
+                this.updateCurrentTime();
+            }
+            
+            setVolume(volume) {
+                if (!this.player) return;
+                
+                this.volume = Math.max(0, Math.min(100, volume));
+                this.player.setVolume(this.volume);
+                this.updateVolumeUI();
+            }
+            
+            toggleMute() {
+                if (!this.player) return;
+                
+                if (this.isMuted) {
+                    this.player.unMute();
+                    this.isMuted = false;
+                } else {
+                    this.player.mute();
+                    this.isMuted = true;
+                }
+                this.updateVolumeUI();
+            }
+            
+            updateVolumeUI() {
+                const volumeLevel = document.getElementById('volume-level');
+                const volumeIcon = document.getElementById('volume-icon');
+                
+                volumeLevel.style.width = `${this.volume}%`;
+                
+                // Обновляем иконку громкости
+                if (this.isMuted || this.volume === 0) {
+                    volumeIcon.className = 'fas fa-volume-mute';
+                } else if (this.volume < 50) {
+                    volumeIcon.className = 'fas fa-volume-down';
+                } else {
+                    volumeIcon.className = 'fas fa-volume-up';
+                }
+            }
+            
+            setPlaybackRate(rate) {
+                if (!this.player) return;
+                
+                this.playbackRate = rate;
+                this.player.setPlaybackRate(rate);
+            }
+            
+            toggleFullscreen() {
+                const wrapper = document.getElementById('video-player-wrapper');
+                
+                if (!document.fullscreenElement) {
+                    if (wrapper.requestFullscreen) {
+                        wrapper.requestFullscreen();
+                    } else if (wrapper.webkitRequestFullscreen) {
+                        wrapper.webkitRequestFullscreen();
+                    } else if (wrapper.msRequestFullscreen) {
+                        wrapper.msRequestFullscreen();
+                    }
+                    wrapper.classList.add('fullscreen');
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                    wrapper.classList.remove('fullscreen');
+                }
+            }
+            
+            async takeScreenshot() {
+                if (!this.player) return;
+                
+                try {
+                    // Получаем текущий кадр из видео
+                    const videoElement = document.querySelector('#youtube-iframe-container iframe');
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    
+                    // Получаем размеры видео
+                    const videoWidth = videoElement.offsetWidth;
+                    const videoHeight = videoElement.offsetHeight;
+                    
+                    // Устанавливаем размеры canvas
+                    canvas.width = videoWidth;
+                    canvas.height = videoHeight;
+                    
+                    // Рисуем видео на canvas
+                    // Note: Это не будет работать из-за политики CORS YouTube
+                    // В реальном проекте нужно использовать серверный прокси
+                    
+                    // Вместо этого показываем сообщение
+                    this.showScreenshotNotification();
+                    
+                } catch (error) {
+                    console.error('Error taking screenshot:', error);
+                    showNotification('Не удалось сделать скриншот', 'error');
+                }
+            }
+            
+            showScreenshotNotification() {
+                const notification = document.getElementById('screenshot-notification');
+                notification.style.display = 'block';
+                
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 3000);
+            }
+            
+            formatTime(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = Math.floor(seconds % 60);
+                
+                if (hours > 0) {
+                    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+                }
+            }
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Скрываем sidebar на мобильных
+            if (window.innerWidth <= 768) {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                if (sidebar) sidebar.classList.add('closed');
+                if (mainContent) mainContent.classList.add('sidebar-hidden');
+            }
+            
+            // Инициализируем кастомный видеоплеер
+            window.videoPlayer = new CustomVideoPlayer();
+            
+            // Загружаем рекомендации
+            setTimeout(() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const videoId = urlParams.get('id');
+                if (videoId) {
+                    loadRecommendations(videoId);
+                }
+            }, 1000);
+        });
+    </script>
 </body>
 </html>

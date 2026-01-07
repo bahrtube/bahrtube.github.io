@@ -20,11 +20,14 @@
                 </div>
             </div>
             <div class="search-bar">
-                <input type="text" placeholder="Поиск видео...">
-                <button><i class="fas fa-search"></i></button>
+                <input type="text" placeholder="Поиск видео..." id="search-input">
+                <button id="search-button"><i class="fas fa-search"></i></button>
             </div>
             <div class="header-right">
-                <button class="upload-btn" onclick="window.location.href='upload.html'">
+                <button class="mobile-search-btn" onclick="showMobileSearch()">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="upload-btn" onclick="checkUploadAccess()">
                     <i class="fas fa-upload"></i> <span>Загрузить</span>
                 </button>
                 <button class="auth-btn" id="auth-btn">
@@ -58,7 +61,11 @@
                     <p>Поделитесь видео с миром</p>
                 </div>
                 
-                <div class="upload-form">
+                <div class="upload-form" id="upload-form">
+                    <div id="channel-info" class="channel-info-upload">
+                        <!-- Информация о канале будет загружена через JavaScript -->
+                    </div>
+                    
                     <div class="form-group">
                         <label for="video-url">Ссылка на YouTube видео</label>
                         <input type="text" id="video-url" placeholder="https://www.youtube.com/watch?v=...">
@@ -73,16 +80,6 @@
                     <div class="form-group">
                         <label for="video-description">Описание</label>
                         <textarea id="video-description" rows="4" placeholder="Расскажите о вашем видео"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="channel-name">Имя канала</label>
-                        <input type="text" id="channel-name" placeholder="Введите имя канала">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="channel-avatar">Аватар канала (первая буква)</label>
-                        <input type="text" id="channel-avatar" maxlength="1" placeholder="А">
                     </div>
                     
                     <div class="form-actions">
@@ -100,12 +97,130 @@
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="auth.js"></script>
     <script src="script.js"></script>
     
     <script>
-        // Адаптация под мобильные устройства
-        document.addEventListener('DOMContentLoaded', function() {
-            // Скрываем sidebar на мобильных при загрузке
+        // Загрузка информации о канале
+        async function loadChannelInfo() {
+            const user = authDB.getCurrentUser();
+            const channelInfo = document.getElementById('channel-info');
+            
+            if (!user || !user.channelCreated) {
+                channelInfo.innerHTML = `
+                    <div class="channel-info-card">
+                        <div class="channel-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>Создайте канал для загрузки видео</h3>
+                            <p>Прежде чем загружать видео, необходимо создать свой канал</p>
+                            <button onclick="showChannelCreationModal()" class="create-channel-btn">
+                                Создать канал
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return false;
+            }
+            
+            channelInfo.innerHTML = `
+                <div class="channel-info-card">
+                    <div class="channel-avatar-large">${user.channelAvatar || 'У'}</div>
+                    <div class="channel-details-upload">
+                        <h3>${user.channelName}</h3>
+                        <p>${user.channelDescription || 'Без описания'}</p>
+                        <div class="channel-stats">
+                            <span><i class="fas fa-users"></i> ${user.subscribers || 0} подписчиков</span>
+                            <span><i class="fas fa-video"></i> ${user.videos ? user.videos.length : 0} видео</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return true;
+        }
+        
+        // Обработка загрузки видео
+        async function handleVideoUpload() {
+            const submitBtn = document.getElementById('upload-submit-btn');
+            const urlInput = document.getElementById('video-url');
+            const titleInput = document.getElementById('video-title');
+            const descriptionInput = document.getElementById('video-description');
+            
+            const url = urlInput.value.trim();
+            const title = titleInput.value.trim();
+            const description = descriptionInput.value.trim();
+            
+            // Валидация
+            if (!url || !title) {
+                showNotification('Заполните обязательные поля', 'error');
+                return;
+            }
+            
+            // Проверка YouTube URL
+            const youtubeId = extractYouTubeId(url);
+            if (!youtubeId) {
+                showNotification('Неверная ссылка на YouTube видео', 'error');
+                return;
+            }
+            
+            // Проверка авторизации
+            const user = authDB.getCurrentUser();
+            if (!user || !user.channelCreated) {
+                showNotification('Для загрузки видео необходим канал', 'error');
+                return;
+            }
+            
+            // Отправка
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+            submitBtn.disabled = true;
+            
+            try {
+                const videoId = await db.addVideo({
+                    url: url,
+                    title: title,
+                    description: description,
+                    youtubeId: youtubeId
+                });
+                
+                showNotification('Видео успешно загружено!', 'success');
+                
+                // Переходим к видео через 1.5 секунды
+                setTimeout(() => {
+                    window.location.href = `video.html?id=${videoId}`;
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error uploading video:', error);
+                showNotification(`Ошибка загрузки: ${error.message}`, 'error');
+                submitBtn.innerHTML = 'Опубликовать';
+                submitBtn.disabled = false;
+            }
+        }
+        
+        // Инициализация страницы
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Проверяем авторизацию
+            if (!checkAuthOnLoad()) {
+                return;
+            }
+            
+            // Загружаем информацию о канале
+            const canUpload = await loadChannelInfo();
+            
+            if (!canUpload) {
+                // Блокируем форму если нет канала
+                document.querySelectorAll('#upload-form input, #upload-form textarea, #upload-submit-btn')
+                    .forEach(el => el.disabled = true);
+                return;
+            }
+            
+            // Настраиваем обработчик отправки
+            const submitBtn = document.getElementById('upload-submit-btn');
+            if (submitBtn) {
+                submitBtn.addEventListener('click', handleVideoUpload);
+            }
+            
+            // Скрываем sidebar на мобильных
             if (window.innerWidth <= 768) {
                 const sidebar = document.querySelector('.sidebar');
                 const mainContent = document.querySelector('.main-content');

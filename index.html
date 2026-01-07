@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BAHRTUBE</title>
+    <title>BAHRTUBE - Главная</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -54,4 +54,67 @@
                         <!-- Подписки будут загружены через JavaScript -->
                     </div>
                 </nav>
-            </aside
+            </aside>
+
+            <main class="video-grid-container">
+                <div class="video-grid-header">
+                    <h2>Рекомендованные видео</h2>
+                    <button class="video-action-btn" style="padding: 8px 16px;" onclick="location.reload()">
+                        <i class="fas fa-redo"></i> Обновить
+                    </button>
+                </div>
+                <div class="video-grid" id="video-grid">
+                    <!-- Видео будут загружены через JavaScript -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <!-- Наши скрипты -->
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    
+    <script>
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Главная страница загружена');
+            
+            // Настройка кнопок
+            const searchButton = document.getElementById('search-button');
+            const searchInput = document.getElementById('search-input');
+            
+            if (searchButton && searchInput) {
+                searchButton.addEventListener('click', function() {
+                    const query = searchInput.value.trim();
+                    if (query) {
+                        performSearch(query);
+                    }
+                });
+                
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const query = searchInput.value.trim();
+                        if (query) {
+                            performSearch(query);
+                        }
+                    }
+                });
+            }
+            
+            // Инициализация аутентификации
+            if (typeof checkAuthOnLoad === 'function') {
+                checkAuthOnLoad();
+            }
+            
+            // Загрузка видео
+            if (typeof loadHomePage === 'function') {
+                loadHomePage();
+            }
+        });
+    </script>
+</body>
+</html>

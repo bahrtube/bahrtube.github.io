@@ -214,6 +214,7 @@ async function loadHomePage() {
     }
 }
 
+// УЛУЧШЕННАЯ СИСТЕМА РЕКОМЕНДАЦИЙ
 async function loadRecommendations(currentVideoId) {
     try {
         const videos = await db.getAllVideos();
@@ -221,7 +222,7 @@ async function loadRecommendations(currentVideoId) {
         
         if (!recommendationsList) return;
         
-        if (!videos) {
+        if (!videos || Object.keys(videos).length === 0) {
             recommendationsList.innerHTML = '<p style="color: #B0B0B0; text-align: center; padding: 20px;">Нет рекомендаций</p>';
             return;
         }
@@ -233,67 +234,74 @@ async function loadRecommendations(currentVideoId) {
             return;
         }
         
-        // Улучшенная система рекомендаций:
-        // 1. Видео от того же автора (приоритет)
-        // 2. Случайные видео
-        // 3. Самые популярные (по просмотрам)
-        
+        // Получаем текущее видео
         const currentVideo = await db.getVideo(currentVideoId);
         const currentChannel = currentVideo?.channelName;
         
-        // Видео от того же автора
-        const sameChannelVideos = videoArray.filter(v => v.channelName === currentChannel);
+        // УЛУЧШЕННЫЙ АЛГОРИТМ:
+        // 1. Создаем веса для разных типов видео
+        const recommendations = [];
         
-        // Случайные видео
+        // Видео от того же автора (высокий приоритет)
+        const sameChannelVideos = videoArray.filter(v => v.channelName === currentChannel);
+        if (sameChannelVideos.length > 0) {
+            // Берем рандомно 1-2 видео от того же автора
+            const randomSameChannel = [...sameChannelVideos]
+                .sort(() => Math.random() - 0.5)
+                .slice(0, Math.min(2, sameChannelVideos.length));
+            recommendations.push(...randomSameChannel);
+        }
+        
+        // Популярные видео (средний приоритет)
+        const popularVideos = [...videoArray]
+            .sort((a, b) => (b.views || 0) - (a.views || 0))
+            .slice(0, 10); // Берем топ-10 популярных
+        
+        // Случайные видео (низкий приоритет)
         const randomVideos = [...videoArray]
             .sort(() => Math.random() - 0.5);
         
-        // Популярные видео (по просмотрам)
-        const popularVideos = [...videoArray]
-            .sort((a, b) => (b.views || 0) - (a.views || 0));
-        
         // Смешиваем рекомендации
-        let recommendations = [];
+        const maxRecommendations = 10;
+        let remainingSlots = maxRecommendations - recommendations.length;
         
-        // Добавляем 1-2 видео от того же автора
-        if (sameChannelVideos.length > 0) {
-            recommendations.push(...sameChannelVideos.slice(0, 2));
+        // Добавляем популярные видео
+        if (remainingSlots > 0) {
+            const popularSelection = popularVideos
+                .filter(v => !recommendations.find(r => r.id === v.id))
+                .slice(0, Math.ceil(remainingSlots / 2));
+            recommendations.push(...popularSelection);
+            remainingSlots = maxRecommendations - recommendations.length;
         }
         
         // Добавляем случайные видео
-        const remainingSlots = 5 - recommendations.length;
-        const randomSelection = randomVideos
-            .filter(v => !recommendations.find(r => r.id === v.id))
-            .slice(0, Math.ceil(remainingSlots / 2));
-        
-        recommendations.push(...randomSelection);
-        
-        // Добавляем популярные видео если нужно
-        if (recommendations.length < 5) {
-            const popularSelection = popularVideos
+        if (remainingSlots > 0) {
+            const randomSelection = randomVideos
                 .filter(v => !recommendations.find(r => r.id === v.id))
-                .slice(0, 5 - recommendations.length);
-            
-            recommendations.push(...popularSelection);
+                .slice(0, remainingSlots);
+            recommendations.push(...randomSelection);
         }
         
-        // Убираем дубликаты и ограничиваем 5 видео
-        recommendations = recommendations.filter((v, i, a) => 
-            a.findIndex(v2 => v2.id === v.id) === i
-        ).slice(0, 5);
+        // Перемешиваем финальный список для разнообразия
+        const shuffledRecommendations = [...recommendations]
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 8); // Ограничиваем 8 рекомендациями
         
-        if (recommendations.length === 0) {
+        if (shuffledRecommendations.length === 0) {
             recommendationsList.innerHTML = '<p style="color: #B0B0B0; text-align: center; padding: 20px;">Нет рекомендаций</p>';
             return;
         }
         
-        recommendationsList.innerHTML = recommendations
+        recommendationsList.innerHTML = shuffledRecommendations
             .map(video => createRecommendationCard(video))
             .join('');
             
     } catch (error) {
         console.error('Error loading recommendations:', error);
-        recommendationsList.innerHTML = '<p style="color: #B0B0B0; text-align: center; padding: 20px;">Ошибка загрузки рекомендаций</p>';
+        const recommendationsList = document.getElementById('recommendations-list');
+        if (recommendationsList) {
+            recommendationsList.innerHTML = '<p style="color: #B0B0B0; text-align: center; padding: 20px;">Ошибка загрузки рекомендаций</p>';
+        }
     }
 }
 
@@ -572,4 +580,5 @@ document.addEventListener('DOMContentLoaded', function() {
     window.performSearch = performSearch;
     window.searchFromSuggestion = searchFromSuggestion;
     window.showNotification = showNotification;
+    window.loadRecommendations = loadRecommendations;
 });

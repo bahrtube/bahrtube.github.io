@@ -44,21 +44,37 @@ const db = {
             .map(item => item.video);
     },
 
+    // ИЗМЕНЕНО: Добавление видео с привязкой к каналу пользователя
     addVideo: async (videoData) => {
+        const user = authDB.getCurrentUser();
+        if (!user || !user.channelCreated) {
+            throw new Error('Для загрузки видео необходим канал');
+        }
+        
         const newVideoRef = database.ref('videos').push();
         const videoId = newVideoRef.key;
         
         const videoWithId = {
             ...videoData,
             id: videoId,
+            ownerId: user.id, // ID владельца
+            channelId: user.id, // ID канала
+            channelName: user.channelName,
+            channelAvatar: user.channelAvatar,
             timestamp: firebase.database.ServerValue.TIMESTAMP,
             likes: 0,
             dislikes: 0,
             views: 0,
-            subscribers: 0
+            subscribers: user.subscribers || 0
         };
         
         await newVideoRef.set(videoWithId);
+        
+        // Добавляем видео в список видео пользователя
+        const userVideos = user.videos || [];
+        userVideos.push(videoId);
+        await authDB.updateUser(user.id, { videos: userVideos });
+        
         return videoId;
     },
 
@@ -69,9 +85,28 @@ const db = {
     getVideo: async (videoId) => {
         const snapshot = await database.ref(`videos/${videoId}`).once('value');
         return snapshot.val();
+    },
+
+    // НОВАЯ ФУНКЦИЯ: Получение видео канала
+    getChannelVideos: async (channelId) => {
+        const snapshot = await database.ref('videos').orderByChild('channelId').equalTo(channelId).once('value');
+        return snapshot.val() || {};
+    },
+
+    // НОВАЯ ФУНКЦИЯ: Обновление лайков/дизлайков
+    updateVideoReaction: async (videoId, type, increment = true) => {
+        const video = await db.getVideo(videoId);
+        if (!video) return false;
+        
+        const currentValue = video[type] || 0;
+        const newValue = increment ? currentValue + 1 : Math.max(currentValue - 1, 0);
+        
+        await db.updateVideo(videoId, { [type]: newValue });
+        return true;
     }
 };
 
+// Глобальные переменные
 let currentVideoId = null;
 let userLiked = false;
 let userDisliked = false;
@@ -174,7 +209,7 @@ async function loadHomePage() {
                 <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
                     <h3 style="margin-bottom: 16px; color: #fff;">Нет загруженных видео</h3>
                     <p style="color: #B0B0B0; margin-bottom: 24px;">Будьте первым, кто загрузит видео!</p>
-                    <button onclick="goToUpload()" style="padding: 14px 32px; background-color: #2E7D32; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 16px; transition: all 0.3s;">
+                    <button onclick="checkUploadAccess()" style="padding: 14px 32px; background-color: #2E7D32; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 16px; transition: all 0.3s;">
                         Загрузить видео
                     </button>
                 </div>
@@ -214,7 +249,7 @@ async function loadHomePage() {
     }
 }
 
-// УЛУЧШЕННАЯ СИСТЕМА РЕКОМЕНДАЦИЙ
+// Улучшенная система рекомендаций
 async function loadRecommendations(currentVideoId) {
     try {
         const videos = await db.getAllVideos();
@@ -236,28 +271,28 @@ async function loadRecommendations(currentVideoId) {
         
         // Получаем текущее видео
         const currentVideo = await db.getVideo(currentVideoId);
-        const currentChannel = currentVideo?.channelName;
+        const currentChannelId = currentVideo?.channelId;
         
-        // УЛУЧШЕННЫЙ АЛГОРИТМ:
-        // 1. Создаем веса для разных типов видео
+        // Улучшенный алгоритм рекомендаций
         const recommendations = [];
         
-        // Видео от того же автора (высокий приоритет)
-        const sameChannelVideos = videoArray.filter(v => v.channelName === currentChannel);
-        if (sameChannelVideos.length > 0) {
-            // Берем рандомно 1-2 видео от того же автора
-            const randomSameChannel = [...sameChannelVideos]
-                .sort(() => Math.random() - 0.5)
-                .slice(0, Math.min(2, sameChannelVideos.length));
-            recommendations.push(...randomSameChannel);
+        // 1. Видео от того же автора (высокий приоритет)
+        if (currentChannelId) {
+            const sameChannelVideos = videoArray.filter(v => v.channelId === currentChannelId);
+            if (sameChannelVideos.length > 0) {
+                const randomSameChannel = [...sameChannelVideos]
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, Math.min(2, sameChannelVideos.length));
+                recommendations.push(...randomSameChannel);
+            }
         }
         
-        // Популярные видео (средний приоритет)
+        // 2. Популярные видео (средний приоритет)
         const popularVideos = [...videoArray]
             .sort((a, b) => (b.views || 0) - (a.views || 0))
-            .slice(0, 10); // Берем топ-10 популярных
+            .slice(0, 10);
         
-        // Случайные видео (низкий приоритет)
+        // 3. Случайные видео (низкий приоритет)
         const randomVideos = [...videoArray]
             .sort(() => Math.random() - 0.5);
         
@@ -282,10 +317,10 @@ async function loadRecommendations(currentVideoId) {
             recommendations.push(...randomSelection);
         }
         
-        // Перемешиваем финальный список для разнообразия
+        // Перемешиваем финальный список
         const shuffledRecommendations = [...recommendations]
             .sort(() => Math.random() - 0.5)
-            .slice(0, 8); // Ограничиваем 8 рекомендациями
+            .slice(0, 8);
         
         if (shuffledRecommendations.length === 0) {
             recommendationsList.innerHTML = '<p style="color: #B0B0B0; text-align: center; padding: 20px;">Нет рекомендаций</p>';
@@ -303,6 +338,171 @@ async function loadRecommendations(currentVideoId) {
             recommendationsList.innerHTML = '<p style="color: #B0B0B0; text-align: center; padding: 20px;">Ошибка загрузки рекомендаций</p>';
         }
     }
+}
+
+// Инициализация взаимодействий на странице видео
+async function setupVideoInteractions() {
+    const user = authDB.getCurrentUser();
+    if (!user || !currentVideoId) return;
+    
+    try {
+        const video = await db.getVideo(currentVideoId);
+        if (!video) return;
+        
+        // Проверяем подписку
+        const userSubscriptions = user.subscriptions || [];
+        userSubscribed = userSubscriptions.includes(video.channelId);
+        
+        // Обновляем кнопку подписки
+        const subscribeBtn = document.getElementById('subscribe-btn');
+        if (subscribeBtn) {
+            subscribeBtn.innerHTML = userSubscribed 
+                ? '<i class="fas fa-check"></i> Вы подписаны' 
+                : '<i class="fas fa-bell"></i> Подписаться';
+            subscribeBtn.className = userSubscribed 
+                ? 'subscribe-btn subscribed' 
+                : 'subscribe-btn';
+            
+            // Обработчик подписки
+            subscribeBtn.onclick = async () => {
+                if (userSubscribed) {
+                    const result = await authDB.unsubscribeFromChannel(video.channelId, user.id);
+                    if (result.success) {
+                        userSubscribed = false;
+                        subscribeBtn.innerHTML = '<i class="fas fa-bell"></i> Подписаться';
+                        subscribeBtn.className = 'subscribe-btn';
+                        showNotification('Вы отписались от канала', 'success');
+                        
+                        // Обновляем счетчик подписчиков
+                        const subsElement = document.getElementById('channel-subs');
+                        if (subsElement) {
+                            const currentSubs = parseInt(subsElement.textContent) || 0;
+                            subsElement.textContent = formatNumber(Math.max(currentSubs - 1, 0)) + ' подписчиков';
+                        }
+                    }
+                } else {
+                    const result = await authDB.subscribeToChannel(video.channelId, user.id);
+                    if (result.success) {
+                        userSubscribed = true;
+                        subscribeBtn.innerHTML = '<i class="fas fa-check"></i> Вы подписаны';
+                        subscribeBtn.className = 'subscribe-btn subscribed';
+                        showNotification('Вы подписались на канал!', 'success');
+                        
+                        // Обновляем счетчик подписчиков
+                        const subsElement = document.getElementById('channel-subs');
+                        if (subsElement) {
+                            const currentSubs = parseInt(subsElement.textContent) || 0;
+                            subsElement.textContent = formatNumber(currentSubs + 1) + ' подписчиков';
+                        }
+                        
+                        // Обновляем подписки в сайдбаре
+                        if (typeof loadUserSubscriptions === 'function') {
+                            loadUserSubscriptions();
+                        }
+                    }
+                }
+            };
+        }
+        
+        // Обработчики лайков/дизлайков
+        const likeBtn = document.getElementById('like-btn');
+        const dislikeBtn = document.getElementById('dislike-btn');
+        
+        if (likeBtn) {
+            likeBtn.onclick = async () => {
+                if (userLiked) {
+                    // Убираем лайк
+                    await db.updateVideoReaction(currentVideoId, 'likes', false);
+                    userLiked = false;
+                    likeBtn.classList.remove('liked');
+                    
+                    // Обновляем счетчик
+                    const likeCount = document.getElementById('like-count');
+                    const currentCount = parseInt(likeCount.textContent) || 0;
+                    likeCount.textContent = formatNumber(Math.max(currentCount - 1, 0));
+                } else {
+                    // Ставим лайк
+                    await db.updateVideoReaction(currentVideoId, 'likes', true);
+                    userLiked = true;
+                    likeBtn.classList.add('liked');
+                    
+                    // Если был дизлайк, убираем его
+                    if (userDisliked) {
+                        await db.updateVideoReaction(currentVideoId, 'dislikes', false);
+                        userDisliked = false;
+                        dislikeBtn.classList.remove('disliked');
+                        
+                        const dislikeCount = document.getElementById('dislike-count');
+                        const currentDislikeCount = parseInt(dislikeCount.textContent) || 0;
+                        dislikeCount.textContent = formatNumber(Math.max(currentDislikeCount - 1, 0));
+                    }
+                    
+                    // Обновляем счетчик
+                    const likeCount = document.getElementById('like-count');
+                    const currentCount = parseInt(likeCount.textContent) || 0;
+                    likeCount.textContent = formatNumber(currentCount + 1);
+                }
+            };
+        }
+        
+        if (dislikeBtn) {
+            dislikeBtn.onclick = async () => {
+                if (userDisliked) {
+                    // Убираем дизлайк
+                    await db.updateVideoReaction(currentVideoId, 'dislikes', false);
+                    userDisliked = false;
+                    dislikeBtn.classList.remove('disliked');
+                    
+                    // Обновляем счетчик
+                    const dislikeCount = document.getElementById('dislike-count');
+                    const currentCount = parseInt(dislikeCount.textContent) || 0;
+                    dislikeCount.textContent = formatNumber(Math.max(currentCount - 1, 0));
+                } else {
+                    // Ставим дизлайк
+                    await db.updateVideoReaction(currentVideoId, 'dislikes', true);
+                    userDisliked = true;
+                    dislikeBtn.classList.add('disliked');
+                    
+                    // Если был лайк, убираем его
+                    if (userLiked) {
+                        await db.updateVideoReaction(currentVideoId, 'likes', false);
+                        userLiked = false;
+                        likeBtn.classList.remove('liked');
+                        
+                        const likeCount = document.getElementById('like-count');
+                        const currentLikeCount = parseInt(likeCount.textContent) || 0;
+                        likeCount.textContent = formatNumber(Math.max(currentLikeCount - 1, 0));
+                    }
+                    
+                    // Обновляем счетчик
+                    const dislikeCount = document.getElementById('dislike-count');
+                    const currentCount = parseInt(dislikeCount.textContent) || 0;
+                    dislikeCount.textContent = formatNumber(currentCount + 1);
+                }
+            };
+        }
+        
+    } catch (error) {
+        console.error('Error setting up video interactions:', error);
+    }
+}
+
+// Проверка доступа к загрузке
+function checkUploadAccess() {
+    const user = authDB.getCurrentUser();
+    if (!user) {
+        showAuthModal('login');
+        showNotification('Для загрузки видео необходимо войти в аккаунт', 'info');
+        return false;
+    }
+    
+    if (!user.channelCreated) {
+        showChannelCreationModal();
+        return false;
+    }
+    
+    window.location.href = 'upload.html';
+    return true;
 }
 
 // Поиск видео
@@ -453,7 +653,7 @@ function searchFromSuggestion(query) {
 }
 
 function goToUpload() {
-    window.location.href = 'upload.html';
+    checkUploadAccess();
 }
 
 // Инициализация мобильной навигации
@@ -470,6 +670,7 @@ function setupMobileNavigation() {
         const isIndex = window.location.pathname.includes('index.html') || window.location.pathname === '/';
         const isVideo = window.location.pathname.includes('video.html');
         const isUpload = window.location.pathname.includes('upload.html');
+        const user = authDB.getCurrentUser();
         
         mobileNav.innerHTML = `
             <a href="index.html" class="mobile-nav-item ${isIndex ? 'active' : ''}">
@@ -480,13 +681,13 @@ function setupMobileNavigation() {
                 <i class="fas fa-search"></i>
                 <span>Поиск</span>
             </a>
-            <a href="upload.html" class="mobile-nav-item ${isUpload ? 'active' : ''}">
+            <a href="#" class="mobile-nav-item" onclick="checkUploadAccess()">
                 <i class="fas fa-upload"></i>
                 <span>Загрузить</span>
             </a>
-            <a href="#" class="mobile-nav-item" onclick="showNotification('Вход в аккаунт в разработке', 'info')">
+            <a href="#" class="mobile-nav-item" onclick="${user ? 'showUserMenu(event)' : 'showAuthModal(\'login\')'}">
                 <i class="fas fa-user"></i>
-                <span>Профиль</span>
+                <span>${user ? 'Профиль' : 'Войти'}</span>
             </a>
         `;
         
@@ -514,7 +715,10 @@ function setupMobileNavigation() {
 }
 
 // Основная инициализация
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Проверяем авторизацию
+    checkAuthOnLoad();
+    
     // Инициализация страниц
     if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
         // Проверяем поисковый запрос в URL
@@ -581,4 +785,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.searchFromSuggestion = searchFromSuggestion;
     window.showNotification = showNotification;
     window.loadRecommendations = loadRecommendations;
+    window.setupVideoInteractions = setupVideoInteractions;
+    window.checkUploadAccess = checkUploadAccess;
 });

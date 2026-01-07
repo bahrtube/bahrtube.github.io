@@ -1,38 +1,55 @@
-// Система аутентификации и управления каналами
+// Упрощенная система аутентификации (без Firebase Auth, только база данных)
+
+// Проверяем наличие Firebase
+if (typeof firebase === 'undefined') {
+    console.error('Firebase не загружен');
+} else {
+    console.log('Firebase доступен');
+}
+
+// Объект для работы с аутентификацией
 const authDB = {
-    // Проверяем, существует ли пользователь
-    checkUserExists: async (email) => {
+    // Получение текущего пользователя из localStorage
+    getCurrentUser: () => {
         try {
-            const snapshot = await database.ref('users').orderByChild('email').equalTo(email).once('value');
-            return snapshot.exists();
+            const userStr = localStorage.getItem('currentUser');
+            return userStr ? JSON.parse(userStr) : null;
         } catch (error) {
-            console.error('Error checking user:', error);
-            return false;
+            console.error('Ошибка получения пользователя:', error);
+            return null;
         }
     },
 
     // Регистрация нового пользователя
     registerUser: async (userData) => {
         try {
+            // Проверяем, существует ли пользователь
+            const snapshot = await database.ref('users').orderByChild('email').equalTo(userData.email).once('value');
+            if (snapshot.exists()) {
+                return { success: false, error: 'Пользователь с таким email уже существует' };
+            }
+            
+            // Создаем нового пользователя
             const userRef = database.ref('users').push();
             const userId = userRef.key;
             
             const userWithId = {
                 ...userData,
                 id: userId,
-                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                createdAt: Date.now(),
                 channelCreated: false,
+                subscriptions: [],
                 videos: []
             };
             
             await userRef.set(userWithId);
             
-            // Сохраняем пользователя в localStorage
+            // Сохраняем в localStorage
             localStorage.setItem('currentUser', JSON.stringify(userWithId));
             
             return { success: true, user: userWithId };
         } catch (error) {
-            console.error('Error registering user:', error);
+            console.error('Ошибка регистрации:', error);
             return { success: false, error: error.message };
         }
     },
@@ -50,17 +67,18 @@ const authDB = {
             const userId = Object.keys(users)[0];
             const user = users[userId];
             
-            // В реальном приложении здесь должно быть хэширование паролей!
+            // Внимание: В реальном приложении пароли должны быть захешированы!
+            // Здесь для простоты сравниваем напрямую
             if (user.password !== password) {
                 return { success: false, error: 'Неверный пароль' };
             }
             
-            // Сохраняем пользователя в localStorage
+            // Сохраняем в localStorage
             localStorage.setItem('currentUser', JSON.stringify(user));
             
             return { success: true, user: user };
         } catch (error) {
-            console.error('Error logging in:', error);
+            console.error('Ошибка входа:', error);
             return { success: false, error: error.message };
         }
     },
@@ -88,18 +106,8 @@ const authDB = {
             
             return { success: true };
         } catch (error) {
-            console.error('Error creating channel:', error);
+            console.error('Ошибка создания канала:', error);
             return { success: false, error: error.message };
-        }
-    },
-
-    // Получение текущего пользователя
-    getCurrentUser: () => {
-        try {
-            const userStr = localStorage.getItem('currentUser');
-            return userStr ? JSON.parse(userStr) : null;
-        } catch (error) {
-            return null;
         }
     },
 
@@ -109,7 +117,7 @@ const authDB = {
         return { success: true };
     },
 
-    // Обновление информации о пользователе
+    // Обновление пользователя
     updateUser: async (userId, updates) => {
         try {
             await database.ref(`users/${userId}`).update(updates);
@@ -121,36 +129,75 @@ const authDB = {
             
             return { success: true };
         } catch (error) {
-            console.error('Error updating user:', error);
+            console.error('Ошибка обновления пользователя:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Получение всех каналов
-    getAllChannels: async () => {
+    // Подписка на канал
+    subscribeToChannel: async (channelId, userId) => {
         try {
-            const snapshot = await database.ref('users').once('value');
-            const users = snapshot.val() || {};
+            const currentUser = authDB.getCurrentUser();
+            if (!currentUser) return { success: false, error: 'Пользователь не авторизован' };
             
-            // Фильтруем только пользователей с созданными каналами
-            const channels = [];
-            Object.values(users).forEach(user => {
-                if (user.channelCreated && user.channelName) {
-                    channels.push({
-                        id: user.id,
-                        name: user.channelName,
-                        avatar: user.channelAvatar,
-                        description: user.channelDescription,
-                        subscribers: user.subscribers || 0,
-                        ownerId: user.id
-                    });
-                }
+            // Получаем канал
+            const snapshot = await database.ref(`users/${channelId}`).once('value');
+            const channel = snapshot.val();
+            
+            if (!channel) return { success: false, error: 'Канал не найден' };
+            
+            // Проверяем, не подписан ли уже
+            const userSubscriptions = currentUser.subscriptions || [];
+            if (userSubscriptions.includes(channelId)) {
+                return { success: false, error: 'Вы уже подписаны на этот канал' };
+            }
+            
+            // Добавляем подписку
+            const newSubscriptions = [...userSubscriptions, channelId];
+            await authDB.updateUser(currentUser.id, { subscriptions: newSubscriptions });
+            
+            // Увеличиваем счетчик подписчиков
+            const currentSubs = channel.subscribers || 0;
+            await database.ref(`users/${channelId}`).update({
+                subscribers: currentSubs + 1
             });
             
-            return channels;
+            return { success: true };
         } catch (error) {
-            console.error('Error getting channels:', error);
-            return [];
+            console.error('Ошибка подписки:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // Отписка от канала
+    unsubscribeFromChannel: async (channelId, userId) => {
+        try {
+            const currentUser = authDB.getCurrentUser();
+            if (!currentUser) return { success: false, error: 'Пользователь не авторизован' };
+            
+            const userSubscriptions = currentUser.subscriptions || [];
+            if (!userSubscriptions.includes(channelId)) {
+                return { success: false, error: 'Вы не подписаны на этот канал' };
+            }
+            
+            // Убираем подписку
+            const newSubscriptions = userSubscriptions.filter(id => id !== channelId);
+            await authDB.updateUser(currentUser.id, { subscriptions: newSubscriptions });
+            
+            // Уменьшаем счетчик подписчиков
+            const snapshot = await database.ref(`users/${channelId}`).once('value');
+            const channel = snapshot.val();
+            if (channel) {
+                const currentSubs = channel.subscribers || 0;
+                await database.ref(`users/${channelId}`).update({
+                    subscribers: Math.max(currentSubs - 1, 0)
+                });
+            }
+            
+            return { success: true };
+        } catch (error) {
+            console.error('Ошибка отписки:', error);
+            return { success: false, error: error.message };
         }
     },
 
@@ -173,88 +220,43 @@ const authDB = {
                 ownerId: user.id
             };
         } catch (error) {
-            console.error('Error getting channel:', error);
+            console.error('Ошибка получения канала:', error);
             return null;
         }
     },
 
-    // Подписка на канал
-    subscribeToChannel: async (channelId, userId) => {
+    // Получение всех каналов
+    getAllChannels: async () => {
         try {
-            // Получаем текущего пользователя
-            const currentUser = authDB.getCurrentUser();
-            if (!currentUser) return { success: false, error: 'Пользователь не авторизован' };
+            const snapshot = await database.ref('users').once('value');
+            const users = snapshot.val() || {};
             
-            // Получаем канал
-            const channel = await authDB.getChannelById(channelId);
-            if (!channel) return { success: false, error: 'Канал не найден' };
-            
-            // Проверяем, не подписан ли уже пользователь
-            const userSubscriptions = currentUser.subscriptions || [];
-            if (userSubscriptions.includes(channelId)) {
-                return { success: false, error: 'Вы уже подписаны на этот канал' };
-            }
-            
-            // Добавляем подписку пользователю
-            const newSubscriptions = [...userSubscriptions, channelId];
-            await authDB.updateUser(currentUser.id, { subscriptions: newSubscriptions });
-            
-            // Увеличиваем счетчик подписчиков канала
-            await database.ref(`users/${channelId}`).update({
-                subscribers: (channel.subscribers || 0) + 1
+            const channels = [];
+            Object.values(users).forEach(user => {
+                if (user.channelCreated && user.channelName) {
+                    channels.push({
+                        id: user.id,
+                        name: user.channelName,
+                        avatar: user.channelAvatar,
+                        description: user.channelDescription,
+                        subscribers: user.subscribers || 0,
+                        ownerId: user.id
+                    });
+                }
             });
             
-            return { success: true };
+            return channels;
         } catch (error) {
-            console.error('Error subscribing to channel:', error);
-            return { success: false, error: error.message };
-        }
-    },
-
-    // Отписка от канала
-    unsubscribeFromChannel: async (channelId, userId) => {
-        try {
-            const currentUser = authDB.getCurrentUser();
-            if (!currentUser) return { success: false, error: 'Пользователь не авторизован' };
-            
-            const userSubscriptions = currentUser.subscriptions || [];
-            if (!userSubscriptions.includes(channelId)) {
-                return { success: false, error: 'Вы не подписаны на этот канал' };
-            }
-            
-            // Убираем подписку
-            const newSubscriptions = userSubscriptions.filter(id => id !== channelId);
-            await authDB.updateUser(currentUser.id, { subscriptions: newSubscriptions });
-            
-            // Уменьшаем счетчик подписчиков
-            const channel = await authDB.getChannelById(channelId);
-            if (channel) {
-                await database.ref(`users/${channelId}`).update({
-                    subscribers: Math.max((channel.subscribers || 0) - 1, 0)
-                });
-            }
-            
-            return { success: true };
-        } catch (error) {
-            console.error('Error unsubscribing from channel:', error);
-            return { success: false, error: error.message };
-        }
-    },
-
-    // Получение видео пользователя
-    getUserVideos: async (userId) => {
-        try {
-            const snapshot = await database.ref('videos').orderByChild('ownerId').equalTo(userId).once('value');
-            return snapshot.val() || {};
-        } catch (error) {
-            console.error('Error getting user videos:', error);
-            return {};
+            console.error('Ошибка получения каналов:', error);
+            return [];
         }
     }
 };
 
-// Функции для управления UI аутентификации
+// Модальное окно авторизации
 function showAuthModal(mode = 'login') {
+    console.log('Показываем модалку авторизации:', mode);
+    
     // Удаляем старый модал
     const oldModal = document.querySelector('.auth-modal');
     if (oldModal) oldModal.remove();
@@ -276,11 +278,11 @@ function showAuthModal(mode = 'login') {
                     <div class="auth-form">
                         <div class="form-group">
                             <label for="login-email">Email</label>
-                            <input type="email" id="login-email" placeholder="your@email.com">
+                            <input type="email" id="login-email" placeholder="your@email.com" value="test@test.com">
                         </div>
                         <div class="form-group">
                             <label for="login-password">Пароль</label>
-                            <input type="password" id="login-password" placeholder="Ваш пароль">
+                            <input type="password" id="login-password" placeholder="Ваш пароль" value="123456">
                         </div>
                         <button class="auth-submit-btn" id="login-submit-btn">
                             <i class="fas fa-sign-in-alt"></i> Войти
@@ -346,7 +348,11 @@ function showAuthModal(mode = 'login') {
     
     function closeModal() {
         modal.classList.add('closing');
-        setTimeout(() => modal.remove(), 300);
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 300);
     }
     
     if (closeBtn) closeBtn.onclick = closeModal;
@@ -385,12 +391,6 @@ function showAuthModal(mode = 'login') {
                 showNotification('Успешный вход!', 'success');
                 closeModal();
                 updateAuthUI();
-                
-                // Проверяем, создан ли канал
-                const user = authDB.getCurrentUser();
-                if (!user.channelCreated) {
-                    showChannelCreationModal();
-                }
             } else {
                 showNotification(result.error, 'error');
                 submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
@@ -425,27 +425,13 @@ function showAuthModal(mode = 'login') {
                 return;
             }
             
-            // Проверяем email
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                showNotification('Введите корректный email', 'error');
-                return;
-            }
-            
-            // Проверяем, существует ли пользователь
-            const userExists = await authDB.checkUserExists(email);
-            if (userExists) {
-                showNotification('Пользователь с таким email уже существует', 'error');
-                return;
-            }
-            
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Регистрация...';
             submitBtn.disabled = true;
             
             const result = await authDB.registerUser({
                 name: name,
                 email: email,
-                password: password, // В реальном приложении пароль должен быть захеширован!
+                password: password,
                 createdAt: Date.now()
             });
             
@@ -453,11 +439,6 @@ function showAuthModal(mode = 'login') {
                 showNotification('Аккаунт успешно создан!', 'success');
                 closeModal();
                 updateAuthUI();
-                
-                // Показываем создание канала
-                setTimeout(() => {
-                    showChannelCreationModal();
-                }, 500);
             } else {
                 showNotification(result.error, 'error');
                 submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
@@ -467,7 +448,10 @@ function showAuthModal(mode = 'login') {
     }
 }
 
+// Модальное окно создания канала
 function showChannelCreationModal() {
+    console.log('Показываем создание канала');
+    
     const user = authDB.getCurrentUser();
     if (!user || user.channelCreated) return;
     
@@ -489,11 +473,11 @@ function showChannelCreationModal() {
                 <div class="channel-form">
                     <div class="form-group">
                         <label for="channel-name">Название канала</label>
-                        <input type="text" id="channel-name" placeholder="Мой YouTube канал">
+                        <input type="text" id="channel-name" placeholder="Мой YouTube канал" value="${user.name || ''} Канал">
                     </div>
                     <div class="form-group">
                         <label for="channel-description">Описание канала</label>
-                        <textarea id="channel-description" rows="3" placeholder="Расскажите о своем канале"></textarea>
+                        <textarea id="channel-description" rows="3" placeholder="Расскажите о своем канале">Привет! Я создатель этого канала.</textarea>
                     </div>
                     <div class="form-group">
                         <label for="channel-avatar">Аватар (первая буква)</label>
@@ -520,7 +504,11 @@ function showChannelCreationModal() {
     
     function closeModal() {
         modal.classList.add('closing');
-        setTimeout(() => modal.remove(), 300);
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 300);
     }
     
     if (cancelBtn) cancelBtn.onclick = closeModal;
@@ -549,11 +537,6 @@ function showChannelCreationModal() {
                 showNotification('Канал успешно создан!', 'success');
                 closeModal();
                 updateAuthUI();
-                
-                // Обновляем подписки в сайдбаре
-                if (typeof loadUserSubscriptions === 'function') {
-                    loadUserSubscriptions();
-                }
             } else {
                 showNotification(result.error, 'error');
                 submitBtn.innerHTML = 'Создать канал';
@@ -563,43 +546,39 @@ function showChannelCreationModal() {
     }
 }
 
+// Обновление UI аутентификации
 function updateAuthUI() {
+    console.log('Обновляем UI аутентификации');
+    
     const user = authDB.getCurrentUser();
     const authBtn = document.getElementById('auth-btn');
     
-    if (!authBtn) return;
+    if (!authBtn) {
+        console.log('Кнопка auth-btn не найдена');
+        return;
+    }
     
     if (user) {
-        // Показываем имя пользователя вместо кнопки "Войти"
+        // Показываем имя пользователя
         const avatar = user.channelAvatar || (user.name ? user.name.charAt(0).toUpperCase() : 'П');
         authBtn.innerHTML = `
             <div class="user-avatar-small">${avatar}</div>
             <span>${user.name || 'Пользователь'}</span>
-            <i class="fas fa-chevron-down" style="margin-left: 8px; font-size: 12px;"></i>
         `;
         
         // Добавляем обработчик для выпадающего меню
         authBtn.onclick = showUserMenu;
-        
-        // Обновляем кнопку загрузки
-        const uploadBtn = document.querySelector('.upload-btn');
-        if (uploadBtn) {
-            uploadBtn.onclick = () => {
-                if (user.channelCreated) {
-                    window.location.href = 'upload.html';
-                } else {
-                    showChannelCreationModal();
-                }
-            };
-        }
     } else {
         authBtn.innerHTML = '<i class="fas fa-user"></i> <span>Войти</span>';
         authBtn.onclick = () => showAuthModal('login');
     }
 }
 
+// Меню пользователя
 function showUserMenu(e) {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
+    
+    console.log('Показываем меню пользователя');
     
     // Удаляем старое меню
     const oldMenu = document.querySelector('.user-dropdown-menu');
@@ -625,15 +604,15 @@ function showUserMenu(e) {
             </div>
         </div>
         <div class="user-menu-divider"></div>
-        <a href="channel.html?id=${user.id}" class="user-menu-item">
+        <button class="user-menu-item" onclick="window.location.href='channel.html?id=${user.id}'">
             <i class="fas fa-user-circle"></i> Мой канал
-        </a>
-        <a href="#" class="user-menu-item" onclick="showNotification('В разработке', 'info')">
+        </button>
+        <button class="user-menu-item" onclick="showNotification('В разработке', 'info')">
             <i class="fas fa-video"></i> Мои видео
-        </a>
-        <a href="#" class="user-menu-item" onclick="showNotification('В разработке', 'info')">
+        </button>
+        <button class="user-menu-item" onclick="showNotification('В разработке', 'info')">
             <i class="fas fa-cog"></i> Настройки
-        </a>
+        </button>
         <div class="user-menu-divider"></div>
         <button class="user-menu-item logout-btn">
             <i class="fas fa-sign-out-alt"></i> Выйти
@@ -667,6 +646,8 @@ function showUserMenu(e) {
 
 // Загрузка подписок пользователя
 async function loadUserSubscriptions() {
+    console.log('Загружаем подписки пользователя');
+    
     const user = authDB.getCurrentUser();
     const subscriptionsList = document.getElementById('subscriptions-list');
     
@@ -701,31 +682,33 @@ async function loadUserSubscriptions() {
         `).join('');
         
     } catch (error) {
-        console.error('Error loading subscriptions:', error);
+        console.error('Ошибка загрузки подписок:', error);
         subscriptionsList.innerHTML = '<p style="color: #B0B0B0; padding: 10px;">Ошибка загрузки подписок</p>';
     }
 }
 
 // Проверка авторизации при загрузке страницы
 function checkAuthOnLoad() {
+    console.log('Проверка авторизации при загрузке');
+    
     const user = authDB.getCurrentUser();
     
     // Обновляем UI
     updateAuthUI();
     
     // Если пользователь авторизован, загружаем подписки
-    if (user) {
-        if (typeof loadUserSubscriptions === 'function') {
-            loadUserSubscriptions();
-        }
-        
-        // Если на странице загрузки видео, проверяем канал
-        if (window.location.pathname.includes('upload.html') && !user.channelCreated) {
-            showChannelCreationModal();
-            return false;
-        }
-    } else if (window.location.pathname.includes('upload.html')) {
-        // Если не авторизован и на странице загрузки, показываем авторизацию
+    if (user && typeof loadUserSubscriptions === 'function') {
+        loadUserSubscriptions();
+    }
+    
+    // Если на странице загрузки видео, проверяем канал
+    if (window.location.pathname.includes('upload.html') && user && !user.channelCreated) {
+        showChannelCreationModal();
+        return false;
+    }
+    
+    // Если не авторизован и на странице загрузки, показываем авторизацию
+    if (window.location.pathname.includes('upload.html') && !user) {
         setTimeout(() => {
             showAuthModal('login');
             showNotification('Для загрузки видео необходимо войти в аккаунт', 'info');
@@ -735,3 +718,12 @@ function checkAuthOnLoad() {
     
     return true;
 }
+
+// Экспортируем функции для использования в других файлах
+window.authDB = authDB;
+window.showAuthModal = showAuthModal;
+window.showChannelCreationModal = showChannelCreationModal;
+window.updateAuthUI = updateAuthUI;
+window.showUserMenu = showUserMenu;
+window.loadUserSubscriptions = loadUserSubscriptions;
+window.checkAuthOnLoad = checkAuthOnLoad;

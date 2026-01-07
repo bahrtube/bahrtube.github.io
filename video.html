@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BAHRTUBE - Видео</title>
+    <title>BAHRTUBE</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -27,7 +27,7 @@
                 <button class="mobile-search-btn" onclick="showMobileSearch()">
                     <i class="fas fa-search"></i>
                 </button>
-                <button class="upload-btn" onclick="checkUploadAccess()">
+                <button class="upload-btn" onclick="goToUpload()">
                     <i class="fas fa-upload"></i> <span>Загрузить</span>
                 </button>
                 <button class="auth-btn" id="auth-btn">
@@ -51,111 +51,158 @@
                     <div class="sidebar-divider"></div>
                     <h3 class="sidebar-title">Подписки</h3>
                     <div id="subscriptions-list">
-                        <!-- Подписки будут загружены через JavaScript -->
+                        <div class="subscription-item">
+                            <div class="subscription-avatar">Т</div>
+                            <span>ТехноБлог</span>
+                        </div>
+                        <div class="subscription-item">
+                            <div class="subscription-avatar">И</div>
+                            <span>Игровой Мир</span>
+                        </div>
                     </div>
                 </nav>
             </aside>
 
             <main class="video-page">
-                <!-- Основной контент видео -->
-                <div class="video-main-content">
-                    <div class="video-player-container">
-                        <!-- Кастомный видеоплеер -->
-                        <div class="video-player-wrapper" id="video-player-wrapper">
-                            <div class="video-loading" id="video-loading">
-                                <i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i>
-                                Загрузка плеера...
+                <div class="video-player-container">
+                    <!-- Кастомный видеоплеер -->
+                    <div class="video-player-wrapper" id="video-player-wrapper">
+                        <div class="video-loading" id="video-loading">
+                            <i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i>
+                            Загрузка плеера...
+                        </div>
+                        
+                        <!-- Контейнер для YouTube iframe -->
+                        <div id="youtube-iframe-container"></div>
+                        
+                        <!-- Кастомные элементы управления -->
+                        <div class="custom-player-controls" id="custom-controls">
+                            <div class="progress-bar-container" id="progress-bar-container">
+                                <div class="progress-bar" id="progress-bar"></div>
                             </div>
                             
-                            <!-- Контейнер для YouTube iframe -->
-                            <div id="youtube-iframe-container"></div>
-                        </div>
-                        
-                        <div class="video-info">
-                            <h1 id="video-title">Загрузка...</h1>
-                            <div class="video-meta">
-                                <div class="video-stats">
-                                    <span id="video-views">0 просмотров</span>
-                                    <span id="video-date">Сегодня</span>
-                                </div>
-                                <div class="video-actions">
-                                    <button class="video-action-btn" id="like-btn">
-                                        <i class="far fa-thumbs-up"></i>
-                                        <span id="like-count">0</span>
+                            <div class="controls-main">
+                                <div class="controls-left">
+                                    <button class="custom-control-btn play-pause-btn" id="play-pause-btn">
+                                        <i class="fas fa-play" id="play-icon"></i>
+                                        <i class="fas fa-pause" id="pause-icon" style="display: none;"></i>
                                     </button>
-                                    <button class="video-action-btn" id="dislike-btn">
-                                        <i class="far fa-thumbs-down"></i>
-                                        <span id="dislike-count">0</span>
+                                    
+                                    <button class="custom-control-btn volume-btn" id="volume-btn">
+                                        <i class="fas fa-volume-up" id="volume-icon"></i>
                                     </button>
-                                    <button class="video-action-btn" id="share-btn">
-                                        <i class="fas fa-share"></i> Поделиться
-                                    </button>
-                                    <button class="video-action-btn" id="save-btn">
-                                        <i class="fas fa-plus"></i> Сохранить
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="video-channel">
-                            <div class="channel-info" id="channel-info-click">
-                                <div class="channel-avatar" id="channel-avatar">А</div>
-                                <div class="channel-details">
-                                    <h3 id="channel-name">Автор</h3>
-                                    <span id="channel-subs">0 подписчиков</span>
-                                </div>
-                            </div>
-                            <button class="subscribe-btn" id="subscribe-btn">
-                                <i class="fas fa-bell"></i> Подписаться
-                            </button>
-                        </div>
-                        
-                        <div class="video-description">
-                            <h3>Описание</h3>
-                            <div class="description-content" id="video-description">
-                                Загрузка...
-                            </div>
-                        </div>
-
-                        <!-- КОММЕНТАРИИ -->
-                        <div class="comments-section" id="comments-section">
-                            <div class="comments-header">
-                                <h3><i class="fas fa-comments"></i> Комментарии <span id="comments-count">0</span></h3>
-                                <div class="comments-sort">
-                                    <select id="comments-sort">
-                                        <option value="newest">Сначала новые</option>
-                                        <option value="popular">Сначала популярные</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <!-- Форма добавления комментария -->
-                            <div class="add-comment" id="add-comment-form">
-                                <div class="comment-avatar" id="comment-user-avatar">В</div>
-                                <div class="comment-input-container">
-                                    <textarea id="comment-input" placeholder="Добавьте комментарий..." rows="3"></textarea>
-                                    <div class="comment-actions">
-                                        <button class="cancel-comment-btn" id="cancel-comment-btn">Отмена</button>
-                                        <button class="submit-comment-btn" id="submit-comment-btn">Комментировать</button>
+                                    
+                                    <div class="volume-container" id="volume-container">
+                                        <div class="volume-slider" id="volume-slider">
+                                            <div class="volume-level" id="volume-level"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="time-display" id="time-display">
+                                        <span id="current-time">0:00</span> / <span id="total-time">0:00</span>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <!-- Список комментариев -->
-                            <div class="comments-list" id="comments-list">
-                                <div class="no-comments">
-                                    <i class="fas fa-comment-slash"></i>
-                                    <p>Пока нет комментариев</p>
-                                    <small>Будьте первым, кто оставит комментарий</small>
+                                
+                                <div class="controls-right">
+                                    <button class="custom-control-btn speed-btn" id="speed-btn">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                    </button>
+                                    
+                                    <button class="custom-control-btn quality-btn" id="quality-btn">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                    
+                                    <button class="custom-control-btn screenshot-btn" id="screenshot-btn">
+                                        <i class="fas fa-camera"></i>
+                                    </button>
+                                    
+                                    <button class="custom-control-btn fullscreen-btn" id="fullscreen-btn">
+                                        <i class="fas fa-expand"></i>
+                                        <i class="fas fa-compress" style="display: none;"></i>
+                                    </button>
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Меню скорости -->
+                        <div class="speed-menu" id="speed-menu">
+                            <div class="speed-option" data-speed="0.25">0.25x</div>
+                            <div class="speed-option" data-speed="0.5">0.5x</div>
+                            <div class="speed-option active" data-speed="1">1x (нормально)</div>
+                            <div class="speed-option" data-speed="1.25">1.25x</div>
+                            <div class="speed-option" data-speed="1.5">1.5x</div>
+                            <div class="speed-option" data-speed="2">2x</div>
+                        </div>
+                        
+                        <!-- Меню качества -->
+                        <div class="quality-menu" id="quality-menu">
+                            <div class="quality-option active" data-quality="auto">Авто</div>
+                            <div class="quality-option" data-quality="144p">144p</div>
+                            <div class="quality-option" data-quality="240p">240p</div>
+                            <div class="quality-option" data-quality="360p">360p</div>
+                            <div class="quality-option" data-quality="480p">480p</div>
+                            <div class="quality-option" data-quality="720p">720p</div>
+                            <div class="quality-option" data-quality="1080p">1080p</div>
+                        </div>
+                        
+                        <!-- Оверлей для скриншота -->
+                        <div class="video-overlay" id="screenshot-overlay">
+                            <img class="screenshot-preview" id="screenshot-preview" alt="Скриншот">
+                        </div>
+                        
+                        <!-- Уведомление о скриншоте -->
+                        <div class="screenshot-notification" id="screenshot-notification">
+                            Скриншот сохранен в буфер обмена
+                        </div>
+                    </div>
+                    
+                    <div class="video-info">
+                        <h1 id="video-title">Название видео</h1>
+                        <div class="video-meta">
+                            <div class="video-stats">
+                                <span id="video-views">0 просмотров</span>
+                                <span id="video-date">Сегодня</span>
+                            </div>
+                            <div class="video-actions">
+                                <button class="video-action-btn" id="like-btn">
+                                    <i class="far fa-thumbs-up"></i>
+                                    <span id="like-count">0</span>
+                                </button>
+                                <button class="video-action-btn" id="dislike-btn">
+                                    <i class="far fa-thumbs-down"></i>
+                                    <span id="dislike-count">0</span>
+                                </button>
+                                <button class="video-action-btn" onclick="showNotification('Функция в разработке', 'info')">
+                                    <i class="fas fa-share"></i> Поделиться
+                                </button>
+                                <button class="video-action-btn" onclick="showNotification('Функция в разработке', 'info')">
+                                    <i class="fas fa-plus"></i> Сохранить
+                                </button>
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="video-channel">
+                        <div class="channel-info">
+                            <div class="channel-avatar" id="channel-avatar">А</div>
+                            <div class="channel-details">
+                                <h3 id="channel-name">Автор</h3>
+                                <span id="channel-subs">0 подписчиков</span>
+                            </div>
+                        </div>
+                        <button class="subscribe-btn" id="subscribe-btn">
+                            <i class="fas fa-bell"></i> Подписаться
+                        </button>
+                    </div>
+                    
+                    <div class="video-description">
+                        <h3>Описание</h3>
+                        <p id="video-description">Описание видео</p>
+                    </div>
                 </div>
                 
-                <!-- Боковая панель с рекомендациями -->
                 <div class="recommendations-sidebar">
-                    <h3><i class="fas fa-fire"></i> Рекомендации</h3>
+                    <h3>Рекомендации</h3>
                     <div class="recommendations-list" id="recommendations-list">
                         <!-- Рекомендации будут загружены через JavaScript -->
                     </div>
@@ -168,514 +215,112 @@
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
-    <!-- Наши скрипты -->
-    <script src="auth.js"></script>
     <script src="script.js"></script>
     
-    <!-- Основной скрипт для страницы видео -->
     <script>
-        // Глобальные переменные для этой страницы
-        let videoPlayer = null;
-        let currentVideoData = null;
-        let userLiked = false;
-        let userDisliked = false;
-        let userSubscribed = false;
-        let userSaved = false;
-        let controlsTimeout = null;
-        
-        // Класс для работы с комментариями
-        class CommentsManager {
-            constructor(videoId) {
-                this.videoId = videoId;
-                this.comments = [];
-                this.currentUser = authDB ? authDB.getCurrentUser() : null;
-                this.init();
-            }
-            
-            async init() {
-                await this.loadComments();
-                this.setupEventListeners();
-            }
-            
-            async loadComments() {
-                try {
-                    const snapshot = await database.ref(`comments/${this.videoId}`).once('value');
-                    const commentsData = snapshot.val() || {};
-                    
-                    // Преобразуем объект в массив
-                    this.comments = Object.values(commentsData).sort((a, b) => 
-                        (b.timestamp || 0) - (a.timestamp || 0)
-                    );
-                    
-                    this.renderComments();
-                    
-                } catch (error) {
-                    console.error('Ошибка загрузки комментариев:', error);
-                }
-            }
-            
-            setupEventListeners() {
-                const submitBtn = document.getElementById('submit-comment-btn');
-                const cancelBtn = document.getElementById('cancel-comment-btn');
-                const commentInput = document.getElementById('comment-input');
-                const sortSelect = document.getElementById('comments-sort');
-                
-                if (submitBtn && commentInput) {
-                    submitBtn.onclick = () => this.addComment();
-                    
-                    commentInput.addEventListener('keydown', (e) => {
-                        if (e.ctrlKey && e.key === 'Enter') {
-                            this.addComment();
-                        }
-                    });
-                }
-                
-                if (cancelBtn) {
-                    cancelBtn.onclick = () => {
-                        commentInput.value = '';
-                        commentInput.style.height = 'auto';
-                    };
-                }
-                
-                if (sortSelect) {
-                    sortSelect.addEventListener('change', (e) => {
-                        this.sortComments(e.target.value);
-                    });
-                }
-                
-                // Автоматическое изменение высоты textarea
-                if (commentInput) {
-                    commentInput.addEventListener('input', function() {
-                        this.style.height = 'auto';
-                        this.style.height = (this.scrollHeight) + 'px';
-                    });
-                }
-            }
-            
-            async addComment() {
-                const commentInput = document.getElementById('comment-input');
-                const commentText = commentInput.value.trim();
-                
-                if (!commentText) {
-                    showNotification('Введите текст комментария', 'error');
-                    return;
-                }
-                
-                if (!this.currentUser) {
-                    showNotification('Для комментирования необходимо войти в аккаунт', 'error');
-                    showAuthModal('login');
-                    return;
-                }
-                
-                try {
-                    const commentId = database.ref().child('comments').child(this.videoId).push().key;
-                    
-                    const commentData = {
-                        id: commentId,
-                        videoId: this.videoId,
-                        userId: this.currentUser.id,
-                        userName: this.currentUser.name || 'Аноним',
-                        userAvatar: this.currentUser.channelAvatar || (this.currentUser.name ? this.currentUser.name.charAt(0).toUpperCase() : 'А'),
-                        text: commentText,
-                        timestamp: Date.now(),
-                        likes: 0,
-                        dislikes: 0,
-                        replies: []
-                    };
-                    
-                    await database.ref(`comments/${this.videoId}/${commentId}`).set(commentData);
-                    
-                    // Добавляем комментарий в массив
-                    this.comments.unshift(commentData);
-                    
-                    // Обновляем UI
-                    this.renderComments();
-                    
-                    // Очищаем поле ввода
-                    commentInput.value = '';
-                    commentInput.style.height = 'auto';
-                    
-                    // Показываем уведомление
-                    showNotification('Комментарий добавлен', 'success');
-                    
-                    // Обновляем счетчик комментариев
-                    this.updateCommentsCount();
-                    
-                } catch (error) {
-                    console.error('Ошибка добавления комментария:', error);
-                    showNotification('Ошибка добавления комментария', 'error');
-                }
-            }
-            
-            sortComments(sortBy) {
-                switch(sortBy) {
-                    case 'newest':
-                        this.comments.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                        break;
-                    case 'popular':
-                        this.comments.sort((a, b) => {
-                            const scoreA = (a.likes || 0) - (a.dislikes || 0);
-                            const scoreB = (b.likes || 0) - (b.dislikes || 0);
-                            return scoreB - scoreA;
-                        });
-                        break;
-                }
-                
-                this.renderComments();
-            }
-            
-            renderComments() {
-                const commentsList = document.getElementById('comments-list');
-                if (!commentsList) return;
-                
-                if (this.comments.length === 0) {
-                    commentsList.innerHTML = `
-                        <div class="no-comments">
-                            <i class="fas fa-comment-slash"></i>
-                            <p>Пока нет комментариев</p>
-                            <small>Будьте первым, кто оставит комментарий</small>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                commentsList.innerHTML = this.comments.map(comment => this.createCommentHTML(comment)).join('');
-                
-                // Добавляем обработчики событий для кнопок лайков/дизлайков комментариев
-                this.addCommentInteractions();
-                
-                // Делаем ссылки кликабельными
-                this.makeLinksClickable();
-            }
-            
-            createCommentHTML(comment) {
-                const timeAgo = this.formatTimeAgo(comment.timestamp);
-                
-                return `
-                    <div class="comment-item" data-id="${comment.id}">
-                        <div class="comment-avatar">${comment.userAvatar}</div>
-                        <div class="comment-content">
-                            <div class="comment-header">
-                                <span class="comment-author">${comment.userName}</span>
-                                <span class="comment-time">${timeAgo}</span>
-                            </div>
-                            <div class="comment-text">${this.escapeHtml(comment.text)}</div>
-                            <div class="comment-actions">
-                                <button class="comment-action-btn like-btn" data-id="${comment.id}">
-                                    <i class="far fa-thumbs-up"></i> <span class="like-count">${comment.likes || 0}</span>
-                                </button>
-                                <button class="comment-action-btn dislike-btn" data-id="${comment.id}">
-                                    <i class="far fa-thumbs-down"></i> <span class="dislike-count">${comment.dislikes || 0}</span>
-                                </button>
-                                <button class="comment-action-btn reply-btn" onclick="showNotification('Ответы на комментарии в разработке', 'info')">
-                                    Ответить
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            addCommentInteractions() {
-                document.querySelectorAll('.comment-action-btn.like-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const commentId = e.currentTarget.dataset.id;
-                        this.likeComment(commentId);
-                    });
-                });
-                
-                document.querySelectorAll('.comment-action-btn.dislike-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const commentId = e.currentTarget.dataset.id;
-                        this.dislikeComment(commentId);
-                    });
-                });
-            }
-            
-            async likeComment(commentId) {
-                if (!this.currentUser) {
-                    showNotification('Для оценки комментариев необходимо войти в аккаунт', 'error');
-                    return;
-                }
-                
-                try {
-                    const commentRef = database.ref(`comments/${this.videoId}/${commentId}`);
-                    const snapshot = await commentRef.once('value');
-                    const comment = snapshot.val();
-                    
-                    if (!comment) return;
-                    
-                    // Увеличиваем счетчик лайков
-                    const newLikes = (comment.likes || 0) + 1;
-                    await commentRef.update({ likes: newLikes });
-                    
-                    // Обновляем UI
-                    const likeCountEl = document.querySelector(`.comment-item[data-id="${commentId}"] .like-count`);
-                    if (likeCountEl) {
-                        likeCountEl.textContent = newLikes;
-                    }
-                    
-                } catch (error) {
-                    console.error('Ошибка лайка комментария:', error);
-                }
-            }
-            
-            async dislikeComment(commentId) {
-                if (!this.currentUser) {
-                    showNotification('Для оценки комментариев необходимо войти в аккаунт', 'error');
-                    return;
-                }
-                
-                try {
-                    const commentRef = database.ref(`comments/${this.videoId}/${commentId}`);
-                    const snapshot = await commentRef.once('value');
-                    const comment = snapshot.val();
-                    
-                    if (!comment) return;
-                    
-                    // Увеличиваем счетчик дизлайков
-                    const newDislikes = (comment.dislikes || 0) + 1;
-                    await commentRef.update({ dislikes: newDislikes });
-                    
-                    // Обновляем UI
-                    const dislikeCountEl = document.querySelector(`.comment-item[data-id="${commentId}"] .dislike-count`);
-                    if (dislikeCountEl) {
-                        dislikeCountEl.textContent = newDislikes;
-                    }
-                    
-                } catch (error) {
-                    console.error('Ошибка дизлайка комментария:', error);
-                }
-            }
-            
-            updateCommentsCount() {
-                const countElement = document.getElementById('comments-count');
-                if (countElement) {
-                    countElement.textContent = `(${this.comments.length})`;
-                }
-            }
-            
-            formatTimeAgo(timestamp) {
-                if (!timestamp) return 'только что';
-                
-                const now = Date.now();
-                const diff = now - timestamp;
-                
-                const minutes = Math.floor(diff / 60000);
-                const hours = Math.floor(diff / 3600000);
-                const days = Math.floor(diff / 86400000);
-                const months = Math.floor(diff / 2592000000);
-                const years = Math.floor(diff / 31536000000);
-                
-                if (years > 0) return `${years} год${this.getPlural(years)} назад`;
-                if (months > 0) return `${months} месяц${this.getPlural(months)} назад`;
-                if (days > 0) return `${days} день${this.getPlural(days)} назад`;
-                if (hours > 0) return `${hours} час${this.getPlural(hours)} назад`;
-                if (minutes > 0) return `${minutes} минут${this.getPlural(minutes)} назад`;
-                return 'только что';
-            }
-            
-            getPlural(num) {
-                const lastDigit = num % 10;
-                const lastTwoDigits = num % 100;
-                
-                if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return 'ов';
-                if (lastDigit === 1) return 'у';
-                if (lastDigit >= 2 && lastDigit <= 4) return 'ы';
-                return 'ов';
-            }
-            
-            escapeHtml(text) {
-                // Сначала заменяем специальные символы HTML
-                let escaped = text
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
-                
-                // Затем обрабатываем ссылки
-                escaped = this.processLinks(escaped);
-                
-                // Затем обрабатываем таймкоды
-                escaped = this.processTimestamps(escaped);
-                
-                // Затем обрабатываем переносы строк
-                escaped = escaped.replace(/\n/g, '<br>');
-                
-                return escaped;
-            }
-            
-            processLinks(text) {
-                // Регулярное выражение для поиска URL
-                const urlRegex = /(https?:\/\/[^\s]+)/g;
-                return text.replace(urlRegex, (url) => {
-                    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-link">${url}</a>`;
-                });
-            }
-            
-            processTimestamps(text) {
-                // Регулярное выражение для поиска таймкодов (например: 1:23, 01:23:45)
-                const timestampRegex = /(\b\d{1,2}:)?\d{1,2}:\d{2}\b/g;
-                return text.replace(timestampRegex, (timestamp) => {
-                    const seconds = this.timestampToSeconds(timestamp);
-                    if (seconds !== null) {
-                        return `<span class="timestamp-link" data-timestamp="${seconds}">${timestamp}</span>`;
-                    }
-                    return timestamp;
-                });
-            }
-            
-            timestampToSeconds(timestamp) {
-                const parts = timestamp.split(':').map(Number);
-                
-                if (parts.length === 2) {
-                    // MM:SS
-                    return parts[0] * 60 + parts[1];
-                } else if (parts.length === 3) {
-                    // HH:MM:SS
-                    return parts[0] * 3600 + parts[1] * 60 + parts[2];
-                }
-                
-                return null;
-            }
-            
-            makeLinksClickable() {
-                // Обработка кликов на ссылки
-                document.querySelectorAll('.text-link').forEach(link => {
-                    link.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                    });
-                });
-                
-                // Обработка кликов на таймкоды
-                document.querySelectorAll('.timestamp-link').forEach(timestamp => {
-                    timestamp.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const seconds = parseInt(timestamp.dataset.timestamp);
-                        if (videoPlayer && typeof videoPlayer.seekTo === 'function') {
-                            videoPlayer.seekTo(seconds);
-                        }
-                    });
-                });
-            }
-        }
-        
-        // Класс для управления видеоплеером
-        class VideoPlayerManager {
+        // Кастомный видеоплеер
+        class CustomVideoPlayer {
             constructor() {
                 this.player = null;
+                this.isPlaying = false;
+                this.currentTime = 0;
+                this.duration = 0;
+                this.volume = 100;
+                this.isMuted = false;
+                this.playbackRate = 1;
+                this.quality = 'auto';
+                this.updateInterval = null;
                 this.youTubeId = null;
-                this.currentVideoId = null;
+                
                 this.init();
             }
             
             async init() {
                 // Получаем ID видео из URL
                 const urlParams = new URLSearchParams(window.location.search);
-                this.currentVideoId = urlParams.get('id');
+                const videoId = urlParams.get('id');
                 
-                if (!this.currentVideoId) {
+                if (!videoId) {
                     window.location.href = 'index.html';
                     return;
                 }
                 
-                // Сохраняем ID видео в глобальной переменной
-                window.currentVideoId = this.currentVideoId;
+                // Получаем информацию о видео из Firebase
+                const videoInfo = await this.loadVideoInfo(videoId);
                 
-                // Загружаем информацию о видео
-                await this.loadVideoInfo();
+                if (!videoInfo) {
+                    showNotification('Видео не найдено', 'error');
+                    return;
+                }
                 
-                // Инициализируем YouTube плеер
+                // Извлекаем YouTube ID из ссылки
+                this.youTubeId = this.extractYouTubeId(videoInfo.url);
+                
+                if (!this.youTubeId) {
+                    showNotification('Неверная ссылка на YouTube', 'error');
+                    return;
+                }
+                
+                // Инициализируем YouTube Player API
                 this.initYouTubePlayer();
                 
-                // Настраиваем взаимодействия
-                this.setupInteractions();
-                
-                // Инициализируем менеджер комментариев
-                window.commentsManager = new CommentsManager(this.currentVideoId);
-                
-                // Загружаем рекомендации
-                if (typeof loadRecommendations === 'function') {
-                    loadRecommendations(this.currentVideoId);
-                }
+                // Настраиваем обработчики событий
+                this.setupEventListeners();
             }
             
-            async loadVideoInfo() {
+            extractYouTubeId(url) {
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[2].length === 11) ? match[2] : null;
+            }
+            
+            async loadVideoInfo(videoId) {
                 try {
-                    currentVideoData = await db.getVideo(this.currentVideoId);
+                    const video = await db.getVideo(videoId);
                     
-                    if (!currentVideoData) {
-                        showNotification('Видео не найдено', 'error');
+                    if (!video) {
                         window.location.href = 'index.html';
-                        return;
+                        return null;
                     }
                     
-                    // Обновляем информацию на странице
-                    document.getElementById('video-title').textContent = currentVideoData.title || 'Без названия';
-                    document.getElementById('video-views').textContent = formatNumber(currentVideoData.views || 0) + ' просмотров';
-                    document.getElementById('video-date').textContent = formatDate(currentVideoData.timestamp);
-                    document.getElementById('like-count').textContent = formatNumber(currentVideoData.likes || 0);
-                    document.getElementById('dislike-count').textContent = formatNumber(currentVideoData.dislikes || 0);
-                    document.getElementById('channel-name').textContent = currentVideoData.channelName || 'Автор';
-                    document.getElementById('channel-subs').textContent = formatNumber(currentVideoData.subscribers || 0) + ' подписчиков';
-                    document.getElementById('channel-avatar').textContent = currentVideoData.channelAvatar || (currentVideoData.channelName || 'А').charAt(0);
+                    // Сохраняем currentVideoId для лайков/дизлайков
+                    window.currentVideoId = videoId;
                     
-                    // Обрабатываем описание (делаем ссылки и таймкоды кликабельными)
-                    const descriptionElement = document.getElementById('video-description');
-                    if (descriptionElement) {
-                        const description = currentVideoData.description || 'Нет описания';
-                        descriptionElement.innerHTML = this.processText(description);
-                        
-                        // Добавляем обработчики для таймкодов
-                        descriptionElement.querySelectorAll('.timestamp-link').forEach(timestamp => {
-                            timestamp.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                const seconds = parseInt(timestamp.dataset.timestamp);
-                                if (this.player && typeof this.player.seekTo === 'function') {
-                                    this.player.seekTo(seconds);
-                                }
-                            });
-                        });
-                    }
+                    document.getElementById('video-title').textContent = video.title || 'Без названия';
+                    document.getElementById('video-views').textContent = formatNumber(video.views || 0) + ' просмотров';
+                    document.getElementById('video-date').textContent = formatDate(video.timestamp);
+                    document.getElementById('like-count').textContent = formatNumber(video.likes || 0);
+                    document.getElementById('dislike-count').textContent = formatNumber(video.dislikes || 0);
+                    document.getElementById('channel-name').textContent = video.channelName || 'Автор';
+                    document.getElementById('channel-subs').textContent = formatNumber(video.subscribers || 0) + ' подписчиков';
+                    document.getElementById('channel-avatar').textContent = video.channelAvatar || (video.channelName || 'А').charAt(0);
+                    document.getElementById('video-description').textContent = video.description || 'Нет описания';
                     
                     // Увеличиваем просмотры
-                    await db.updateVideo(this.currentVideoId, { 
-                        views: (currentVideoData.views || 0) + 1 
-                    });
+                    await db.updateVideo(videoId, { views: (video.views || 0) + 1 });
                     
-                    // Извлекаем YouTube ID
-                    this.youTubeId = extractYouTubeId(currentVideoData.url);
+                    // Загружаем рекомендации
+                    loadRecommendations(videoId);
+                    
+                    return video;
                     
                 } catch (error) {
-                    console.error('Ошибка загрузки видео:', error);
-                    showNotification('Ошибка загрузки видео', 'error');
+                    console.error('Error loading video info:', error);
+                    return null;
                 }
             }
             
             initYouTubePlayer() {
-                if (!this.youTubeId) {
-                    document.getElementById('video-loading').innerHTML = `
-                        <div style="text-align: center; color: #f44336;">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px;"></i>
-                            <h3 style="margin-bottom: 12px;">Ошибка загрузки видео</h3>
-                            <button onclick="window.history.back()" style="padding: 10px 20px; background-color: #2E7D32; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                                Назад
-                            </button>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                // Проверяем, загружена ли YouTube API
+                // Проверяем, загружена ли уже YouTube API
                 if (window.YT && window.YT.Player) {
                     this.createPlayer();
                 } else {
+                    // Если API еще не загружен, ждем события
                     window.onYouTubeIframeAPIReady = () => {
                         this.createPlayer();
                     };
                     
+                    // На всякий случай, если событие уже произошло
                     setTimeout(() => {
                         if (window.YT && window.YT.Player && !this.player) {
                             this.createPlayer();
@@ -686,410 +331,416 @@
             
             createPlayer() {
                 try {
+                    console.log('Creating YouTube player with ID:', this.youTubeId);
+                    
                     this.player = new YT.Player('youtube-iframe-container', {
                         height: '100%',
                         width: '100%',
                         videoId: this.youTubeId,
                         playerVars: {
                             'autoplay': 1,
-                            'controls': 1,
+                            'controls': 0,
+                            'disablekb': 1,
+                            'fs': 0,
+                            'modestbranding': 1,
                             'rel': 0,
                             'showinfo': 0,
-                            'iv_load_policy': 3,
-                            'modestbranding': 1
+                            'iv_load_policy': 3
                         },
                         events: {
                             'onReady': (event) => this.onPlayerReady(event),
-                            'onStateChange': (event) => this.onPlayerStateChange(event)
+                            'onStateChange': (event) => this.onPlayerStateChange(event),
+                            'onError': (event) => this.onPlayerError(event)
                         }
                     });
                     
                 } catch (error) {
-                    console.error('Ошибка создания плеера:', error);
-                    document.getElementById('video-loading').innerHTML = `
-                        <div style="text-align: center; color: #f44336;">
-                            <h3>Ошибка загрузки плеера</h3>
-                            <p>${error.message}</p>
-                        </div>
-                    `;
+                    console.error('Error creating YouTube player:', error);
+                    this.showError('Ошибка загрузки плеера');
                 }
             }
             
             onPlayerReady(event) {
-                console.log('Плеер готов');
+                console.log('YouTube player ready');
+                this.duration = event.target.getDuration();
+                this.updateTotalTime();
+                this.setVolume(this.volume);
+                
+                // Скрываем индикатор загрузки
                 document.getElementById('video-loading').style.display = 'none';
+                
+                // Запускаем обновление времени
+                this.startUpdateInterval();
+                
+                // Показываем элементы управления
+                document.getElementById('custom-controls').style.opacity = '1';
+                
+                // Инициализируем взаимодействия (лайки и т.д.)
+                this.setupVideoInteractions();
             }
             
             onPlayerStateChange(event) {
-                // Можно добавить логику при изменении состояния плеера
+                console.log('Player state changed:', event.data);
+                switch(event.data) {
+                    case YT.PlayerState.PLAYING:
+                        this.isPlaying = true;
+                        this.updatePlayPauseButton();
+                        break;
+                    case YT.PlayerState.PAUSED:
+                        this.isPlaying = false;
+                        this.updatePlayPauseButton();
+                        break;
+                    case YT.PlayerState.ENDED:
+                        this.isPlaying = false;
+                        this.updatePlayPauseButton();
+                        break;
+                    case YT.PlayerState.BUFFERING:
+                        console.log('Buffering...');
+                        break;
+                    case YT.PlayerState.CUED:
+                        console.log('Video cued');
+                        break;
+                }
             }
             
-            setupInteractions() {
-                // Кнопка лайка
-                const likeBtn = document.getElementById('like-btn');
-                if (likeBtn) {
-                    likeBtn.addEventListener('click', () => this.handleLike());
+            onPlayerError(event) {
+                console.error('YouTube player error:', event.data);
+                let errorMessage = 'Ошибка загрузки видео';
+                
+                switch(event.data) {
+                    case 2:
+                        errorMessage = 'Неверный YouTube ID';
+                        break;
+                    case 5:
+                        errorMessage = 'Ошибка HTML5 плеера';
+                        break;
+                    case 100:
+                        errorMessage = 'Видео не найдено';
+                        break;
+                    case 101:
+                    case 150:
+                        errorMessage = 'Владелец запретил встраивание';
+                        break;
                 }
                 
-                // Кнопка дизлайка
-                const dislikeBtn = document.getElementById('dislike-btn');
-                if (dislikeBtn) {
-                    dislikeBtn.addEventListener('click', () => this.handleDislike());
-                }
+                this.showError(errorMessage);
+            }
+            
+            showError(message) {
+                document.getElementById('video-loading').innerHTML = `
+                    <div style="text-align: center; color: #f44336;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px;"></i>
+                        <h3 style="margin-bottom: 12px;">${message}</h3>
+                        <button onclick="window.history.back()" style="padding: 10px 20px; background-color: #2E7D32; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            Назад
+                        </button>
+                    </div>
+                `;
+            }
+            
+            setupEventListeners() {
+                // Кнопка play/pause
+                document.getElementById('play-pause-btn').addEventListener('click', () => {
+                    this.togglePlayPause();
+                });
                 
-                // Кнопка поделиться
-                const shareBtn = document.getElementById('share-btn');
-                if (shareBtn) {
-                    shareBtn.addEventListener('click', () => this.handleShare());
-                }
+                // Прогресс бар
+                const progressBar = document.getElementById('progress-bar-container');
+                progressBar.addEventListener('click', (e) => {
+                    const rect = progressBar.getBoundingClientRect();
+                    const percent = (e.clientX - rect.left) / rect.width;
+                    this.seekTo(percent * this.duration);
+                });
                 
-                // Кнопка сохранить
-                const saveBtn = document.getElementById('save-btn');
-                if (saveBtn) {
-                    saveBtn.addEventListener('click', () => this.handleSave());
-                    // Проверяем, сохранено ли видео
-                    this.checkIfSaved();
-                }
+                // Громкость
+                document.getElementById('volume-btn').addEventListener('click', () => {
+                    this.toggleMute();
+                });
                 
-                // Кнопка подписки
-                const subscribeBtn = document.getElementById('subscribe-btn');
-                if (subscribeBtn) {
-                    subscribeBtn.addEventListener('click', () => this.handleSubscribe());
-                    // Проверяем, подписан ли пользователь
-                    this.checkSubscription();
-                }
+                const volumeSlider = document.getElementById('volume-slider');
+                volumeSlider.addEventListener('click', (e) => {
+                    const rect = volumeSlider.getBoundingClientRect();
+                    const percent = (e.clientX - rect.left) / rect.width;
+                    this.setVolume(percent * 100);
+                });
                 
-                // Переход на канал
-                const channelInfo = document.getElementById('channel-info-click');
-                if (channelInfo) {
-                    channelInfo.addEventListener('click', () => {
-                        if (currentVideoData && currentVideoData.channelId) {
-                            window.location.href = `channel.html?id=${currentVideoData.channelId}`;
-                        }
+                // Полноэкранный режим
+                document.getElementById('fullscreen-btn').addEventListener('click', () => {
+                    this.toggleFullscreen();
+                });
+                
+                // Скорость воспроизведения
+                document.getElementById('speed-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const menu = document.getElementById('speed-menu');
+                    menu.classList.toggle('show');
+                });
+                
+                document.querySelectorAll('.speed-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        const speed = parseFloat(e.target.dataset.speed);
+                        this.setPlaybackRate(speed);
+                        
+                        // Обновляем активный элемент
+                        document.querySelectorAll('.speed-option').forEach(opt => {
+                            opt.classList.remove('active');
+                        });
+                        e.target.classList.add('active');
+                        
+                        // Закрываем меню
+                        document.getElementById('speed-menu').classList.remove('show');
                     });
-                }
-            }
-            
-            async handleLike() {
-                const user = authDB ? authDB.getCurrentUser() : null;
-                if (!user) {
-                    showNotification('Для оценки видео необходимо войти в аккаунт', 'error');
-                    showAuthModal('login');
-                    return;
-                }
+                });
                 
-                try {
-                    if (userLiked) {
-                        // Убираем лайк
-                        await db.updateVideo(this.currentVideoId, {
-                            likes: Math.max((currentVideoData.likes || 0) - 1, 0)
-                        });
-                        userLiked = false;
-                        document.getElementById('like-btn').classList.remove('liked');
-                        currentVideoData.likes = Math.max((currentVideoData.likes || 0) - 1, 0);
-                    } else {
-                        // Ставим лайк
-                        await db.updateVideo(this.currentVideoId, {
-                            likes: (currentVideoData.likes || 0) + 1
-                        });
-                        userLiked = true;
-                        document.getElementById('like-btn').classList.add('liked');
-                        currentVideoData.likes = (currentVideoData.likes || 0) + 1;
-                        
-                        // Если был дизлайк, убираем его
-                        if (userDisliked) {
-                            await db.updateVideo(this.currentVideoId, {
-                                dislikes: Math.max((currentVideoData.dislikes || 0) - 1, 0)
-                            });
-                            userDisliked = false;
-                            document.getElementById('dislike-btn').classList.remove('disliked');
-                            currentVideoData.dislikes = Math.max((currentVideoData.dislikes || 0) - 1, 0);
-                        }
+                // Качество
+                document.getElementById('quality-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const menu = document.getElementById('quality-menu');
+                    menu.classList.toggle('show');
+                });
+                
+                // Скриншот
+                document.getElementById('screenshot-btn').addEventListener('click', () => {
+                    this.takeScreenshot();
+                });
+                
+                // Закрытие меню при клике вне их
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('#speed-btn')) {
+                        document.getElementById('speed-menu').classList.remove('show');
                     }
-                    
-                    // Обновляем счетчики
-                    document.getElementById('like-count').textContent = formatNumber(currentVideoData.likes);
-                    document.getElementById('dislike-count').textContent = formatNumber(currentVideoData.dislikes);
-                    
-                    // Сохраняем информацию о лайке в профиле пользователя
-                    await this.saveUserReaction('liked');
-                    
-                } catch (error) {
-                    console.error('Ошибка лайка:', error);
-                    showNotification('Ошибка оценки видео', 'error');
-                }
-            }
-            
-            async handleDislike() {
-                const user = authDB ? authDB.getCurrentUser() : null;
-                if (!user) {
-                    showNotification('Для оценки видео необходимо войти в аккаунт', 'error');
-                    showAuthModal('login');
-                    return;
-                }
-                
-                try {
-                    if (userDisliked) {
-                        // Убираем дизлайк
-                        await db.updateVideo(this.currentVideoId, {
-                            dislikes: Math.max((currentVideoData.dislikes || 0) - 1, 0)
-                        });
-                        userDisliked = false;
-                        document.getElementById('dislike-btn').classList.remove('disliked');
-                        currentVideoData.dislikes = Math.max((currentVideoData.dislikes || 0) - 1, 0);
-                    } else {
-                        // Ставим дизлайк
-                        await db.updateVideo(this.currentVideoId, {
-                            dislikes: (currentVideoData.dislikes || 0) + 1
-                        });
-                        userDisliked = true;
-                        document.getElementById('dislike-btn').classList.add('disliked');
-                        currentVideoData.dislikes = (currentVideoData.dislikes || 0) + 1;
-                        
-                        // Если был лайк, убираем его
-                        if (userLiked) {
-                            await db.updateVideo(this.currentVideoId, {
-                                likes: Math.max((currentVideoData.likes || 0) - 1, 0)
-                            });
-                            userLiked = false;
-                            document.getElementById('like-btn').classList.remove('liked');
-                            currentVideoData.likes = Math.max((currentVideoData.likes || 0) - 1, 0);
-                        }
+                    if (!e.target.closest('#quality-btn')) {
+                        document.getElementById('quality-menu').classList.remove('show');
                     }
+                });
+                
+                // Управление с клавиатуры
+                document.addEventListener('keydown', (e) => {
+                    // Проверяем, что фокус не в поле ввода
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
                     
-                    // Обновляем счетчики
-                    document.getElementById('like-count').textContent = formatNumber(currentVideoData.likes);
-                    document.getElementById('dislike-count').textContent = formatNumber(currentVideoData.dislikes);
-                    
-                    // Сохраняем информацию о дизлайке в профиле пользователя
-                    await this.saveUserReaction('disliked');
-                    
-                } catch (error) {
-                    console.error('Ошибка дизлайка:', error);
-                    showNotification('Ошибка оценки видео', 'error');
-                }
-            }
-            
-            async handleShare() {
-                const videoUrl = window.location.href;
-                
-                try {
-                    // Пробуем использовать Clipboard API
-                    await navigator.clipboard.writeText(videoUrl);
-                    showNotification('Ссылка скопирована в буфер обмена', 'success');
-                } catch (error) {
-                    // Fallback для старых браузеров
-                    const textArea = document.createElement('textarea');
-                    textArea.value = videoUrl;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    showNotification('Ссылка скопирована в буфер обмена', 'success');
-                }
-            }
-            
-            async handleSave() {
-                const user = authDB ? authDB.getCurrentUser() : null;
-                if (!user) {
-                    showNotification('Для сохранения видео необходимо войти в аккаунт', 'error');
-                    showAuthModal('login');
-                    return;
-                }
-                
-                try {
-                    if (userSaved) {
-                        // Убираем из сохраненных
-                        const savedVideos = user.savedVideos || [];
-                        const newSavedVideos = savedVideos.filter(id => id !== this.currentVideoId);
-                        await authDB.updateUser(user.id, { savedVideos: newSavedVideos });
-                        userSaved = false;
-                        document.getElementById('save-btn').innerHTML = '<i class="fas fa-plus"></i> Сохранить';
-                        showNotification('Видео удалено из сохраненных', 'success');
-                    } else {
-                        // Добавляем в сохраненные
-                        const savedVideos = user.savedVideos || [];
-                        if (!savedVideos.includes(this.currentVideoId)) {
-                            savedVideos.push(this.currentVideoId);
-                            await authDB.updateUser(user.id, { savedVideos: savedVideos });
-                        }
-                        userSaved = true;
-                        document.getElementById('save-btn').innerHTML = '<i class="fas fa-check"></i> Сохранено';
-                        showNotification('Видео добавлено в сохраненные', 'success');
+                    switch(e.key) {
+                        case ' ':
+                        case 'k':
+                            e.preventDefault();
+                            this.togglePlayPause();
+                            break;
+                        case 'f':
+                            e.preventDefault();
+                            this.toggleFullscreen();
+                            break;
+                        case 'm':
+                            e.preventDefault();
+                            this.toggleMute();
+                            break;
+                        case 'ArrowLeft':
+                            e.preventDefault();
+                            this.seekTo(this.currentTime - 5);
+                            break;
+                        case 'ArrowRight':
+                            e.preventDefault();
+                            this.seekTo(this.currentTime + 5);
+                            break;
+                        case 'ArrowUp':
+                            e.preventDefault();
+                            this.setVolume(Math.min(this.volume + 10, 100));
+                            break;
+                        case 'ArrowDown':
+                            e.preventDefault();
+                            this.setVolume(Math.max(this.volume - 10, 0));
+                            break;
                     }
-                } catch (error) {
-                    console.error('Ошибка сохранения видео:', error);
-                    showNotification('Ошибка сохранения видео', 'error');
-                }
-            }
-            
-            async handleSubscribe() {
-                const user = authDB ? authDB.getCurrentUser() : null;
-                if (!user) {
-                    showNotification('Для подписки необходимо войти в аккаунт', 'error');
-                    showAuthModal('login');
-                    return;
-                }
+                });
                 
-                if (!currentVideoData || !currentVideoData.channelId) {
-                    showNotification('Ошибка подписки: канал не найден', 'error');
-                    return;
-                }
+                // Анимация элементов управления при наведении
+                const playerWrapper = document.getElementById('video-player-wrapper');
+                playerWrapper.addEventListener('mouseenter', () => {
+                    document.getElementById('custom-controls').style.opacity = '1';
+                });
                 
-                try {
-                    if (userSubscribed) {
-                        // Отписываемся
-                        const result = await authDB.unsubscribeFromChannel(currentVideoData.channelId, user.id);
-                        if (result.success) {
-                            userSubscribed = false;
-                            document.getElementById('subscribe-btn').innerHTML = '<i class="fas fa-bell"></i> Подписаться';
-                            document.getElementById('subscribe-btn').className = 'subscribe-btn';
-                            currentVideoData.subscribers = Math.max((currentVideoData.subscribers || 0) - 1, 0);
-                            document.getElementById('channel-subs').textContent = formatNumber(currentVideoData.subscribers) + ' подписчиков';
-                            showNotification('Вы отписались от канала', 'success');
-                        }
-                    } else {
-                        // Подписываемся
-                        const result = await authDB.subscribeToChannel(currentVideoData.channelId, user.id);
-                        if (result.success) {
-                            userSubscribed = true;
-                            document.getElementById('subscribe-btn').innerHTML = '<i class="fas fa-check"></i> Вы подписаны';
-                            document.getElementById('subscribe-btn').className = 'subscribe-btn subscribed';
-                            currentVideoData.subscribers = (currentVideoData.subscribers || 0) + 1;
-                            document.getElementById('channel-subs').textContent = formatNumber(currentVideoData.subscribers) + ' подписчиков';
-                            showNotification('Вы подписались на канал!', 'success');
-                            
-                            // Обновляем подписки в сайдбаре
-                            if (typeof loadUserSubscriptions === 'function') {
-                                loadUserSubscriptions();
-                            }
-                        }
+                playerWrapper.addEventListener('mouseleave', () => {
+                    // Не скрываем полностью, только делаем полупрозрачным
+                    if (this.isPlaying) {
+                        document.getElementById('custom-controls').style.opacity = '0.3';
                     }
-                } catch (error) {
-                    console.error('Ошибка подписки:', error);
-                    showNotification('Ошибка подписки', 'error');
-                }
-            }
-            
-            async checkSubscription() {
-                const user = authDB ? authDB.getCurrentUser();
-                if (!user || !currentVideoData) return;
-                
-                const userSubscriptions = user.subscriptions || [];
-                userSubscribed = userSubscriptions.includes(currentVideoData.channelId);
-                
-                const subscribeBtn = document.getElementById('subscribe-btn');
-                if (subscribeBtn) {
-                    if (userSubscribed) {
-                        subscribeBtn.innerHTML = '<i class="fas fa-check"></i> Вы подписаны';
-                        subscribeBtn.className = 'subscribe-btn subscribed';
-                    } else {
-                        subscribeBtn.innerHTML = '<i class="fas fa-bell"></i> Подписаться';
-                        subscribeBtn.className = 'subscribe-btn';
-                    }
-                }
-            }
-            
-            async checkIfSaved() {
-                const user = authDB ? authDB.getCurrentUser() : null;
-                if (!user) return;
-                
-                const savedVideos = user.savedVideos || [];
-                userSaved = savedVideos.includes(this.currentVideoId);
-                
-                const saveBtn = document.getElementById('save-btn');
-                if (saveBtn) {
-                    if (userSaved) {
-                        saveBtn.innerHTML = '<i class="fas fa-check"></i> Сохранено';
-                    } else {
-                        saveBtn.innerHTML = '<i class="fas fa-plus"></i> Сохранить';
-                    }
-                }
-            }
-            
-            async saveUserReaction(type) {
-                const user = authDB ? authDB.getCurrentUser() : null;
-                if (!user) return;
-                
-                try {
-                    const reactions = user.reactions || {};
-                    reactions[this.currentVideoId] = type; // 'liked' или 'disliked'
-                    
-                    await authDB.updateUser(user.id, { reactions: reactions });
-                } catch (error) {
-                    console.error('Ошибка сохранения реакции:', error);
-                }
-            }
-            
-            seekTo(seconds) {
-                if (this.player && typeof this.player.seekTo === 'function') {
-                    this.player.seekTo(seconds, true);
-                }
-            }
-            
-            processText(text) {
-                if (!text) return '';
-                
-                // Экранируем HTML
-                let processed = text
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
-                
-                // Обрабатываем ссылки
-                processed = this.processLinks(processed);
-                
-                // Обрабатываем таймкоды
-                processed = this.processTimestamps(processed);
-                
-                // Обрабатываем переносы строк
-                processed = processed.replace(/\n/g, '<br>');
-                
-                return processed;
-            }
-            
-            processLinks(text) {
-                const urlRegex = /(https?:\/\/[^\s]+)/g;
-                return text.replace(urlRegex, (url) => {
-                    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-link">${url}</a>`;
                 });
             }
             
-            processTimestamps(text) {
-                const timestampRegex = /(\b\d{1,2}:)?\d{1,2}:\d{2}\b/g;
-                return text.replace(timestampRegex, (timestamp) => {
-                    const seconds = this.timestampToSeconds(timestamp);
-                    if (seconds !== null) {
-                        return `<span class="timestamp-link" data-timestamp="${seconds}">${timestamp}</span>`;
-                    }
-                    return timestamp;
-                });
+            setupVideoInteractions() {
+                // Инициализация лайков/дизлайков/подписок
+                if (typeof setupVideoInteractions === 'function') {
+                    setupVideoInteractions();
+                }
             }
             
-            timestampToSeconds(timestamp) {
-                const parts = timestamp.split(':').map(Number);
+            startUpdateInterval() {
+                this.updateInterval = setInterval(() => {
+                    if (this.player && this.player.getCurrentTime) {
+                        this.currentTime = this.player.getCurrentTime();
+                        this.updateProgressBar();
+                        this.updateCurrentTime();
+                    }
+                }, 100);
+            }
+            
+            updateProgressBar() {
+                if (this.duration > 0) {
+                    const progressPercent = (this.currentTime / this.duration) * 100;
+                    document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                }
+            }
+            
+            updateCurrentTime() {
+                const currentTimeFormatted = this.formatTime(this.currentTime);
+                document.getElementById('current-time').textContent = currentTimeFormatted;
+            }
+            
+            updateTotalTime() {
+                const totalTimeFormatted = this.formatTime(this.duration);
+                document.getElementById('total-time').textContent = totalTimeFormatted;
+            }
+            
+            updatePlayPauseButton() {
+                const playIcon = document.getElementById('play-icon');
+                const pauseIcon = document.getElementById('pause-icon');
                 
-                if (parts.length === 2) {
-                    return parts[0] * 60 + parts[1];
-                } else if (parts.length === 3) {
-                    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+                if (this.isPlaying) {
+                    playIcon.style.display = 'none';
+                    pauseIcon.style.display = 'block';
+                } else {
+                    playIcon.style.display = 'block';
+                    pauseIcon.style.display = 'none';
+                }
+            }
+            
+            togglePlayPause() {
+                if (!this.player) return;
+                
+                if (this.isPlaying) {
+                    this.player.pauseVideo();
+                } else {
+                    this.player.playVideo();
+                }
+            }
+            
+            seekTo(time) {
+                if (!this.player) return;
+                
+                this.player.seekTo(time, true);
+                this.currentTime = time;
+                this.updateProgressBar();
+                this.updateCurrentTime();
+            }
+            
+            setVolume(volume) {
+                if (!this.player) return;
+                
+                this.volume = Math.max(0, Math.min(100, volume));
+                this.player.setVolume(this.volume);
+                
+                // Размутить если был выключен звук
+                if (this.isMuted && this.volume > 0) {
+                    this.player.unMute();
+                    this.isMuted = false;
                 }
                 
-                return null;
+                this.updateVolumeUI();
+            }
+            
+            toggleMute() {
+                if (!this.player) return;
+                
+                if (this.isMuted) {
+                    this.player.unMute();
+                    this.isMuted = false;
+                } else {
+                    this.player.mute();
+                    this.isMuted = true;
+                }
+                this.updateVolumeUI();
+            }
+            
+            updateVolumeUI() {
+                const volumeLevel = document.getElementById('volume-level');
+                const volumeIcon = document.getElementById('volume-icon');
+                
+                if (volumeLevel) {
+                    volumeLevel.style.width = `${this.volume}%`;
+                }
+                
+                if (volumeIcon) {
+                    // Обновляем иконку громкости
+                    if (this.isMuted || this.volume === 0) {
+                        volumeIcon.className = 'fas fa-volume-mute';
+                    } else if (this.volume < 50) {
+                        volumeIcon.className = 'fas fa-volume-down';
+                    } else {
+                        volumeIcon.className = 'fas fa-volume-up';
+                    }
+                }
+            }
+            
+            setPlaybackRate(rate) {
+                if (!this.player) return;
+                
+                this.playbackRate = rate;
+                this.player.setPlaybackRate(rate);
+            }
+            
+            toggleFullscreen() {
+                const wrapper = document.getElementById('video-player-wrapper');
+                
+                if (!document.fullscreenElement) {
+                    if (wrapper.requestFullscreen) {
+                        wrapper.requestFullscreen();
+                    } else if (wrapper.webkitRequestFullscreen) {
+                        wrapper.webkitRequestFullscreen();
+                    } else if (wrapper.msRequestFullscreen) {
+                        wrapper.msRequestFullscreen();
+                    }
+                    wrapper.classList.add('fullscreen');
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                    wrapper.classList.remove('fullscreen');
+                }
+            }
+            
+            async takeScreenshot() {
+                // Не реализовано из-за CORS политики YouTube
+                // В реальном проекте нужно использовать серверный прокси
+                this.showScreenshotNotification();
+            }
+            
+            showScreenshotNotification() {
+                const notification = document.getElementById('screenshot-notification');
+                notification.style.display = 'block';
+                
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 3000);
+            }
+            
+            formatTime(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = Math.floor(seconds % 60);
+                
+                if (hours > 0) {
+                    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+                }
             }
         }
-        
-        // Инициализация страницы
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('Страница видео загружена');
-            
-            // Инициализируем аутентификацию
-            if (typeof checkAuthOnLoad === 'function') {
-                checkAuthOnLoad();
-            }
-            
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
             // Скрываем sidebar на мобильных
             if (window.innerWidth <= 768) {
                 const sidebar = document.querySelector('.sidebar');
@@ -1098,9 +749,8 @@
                 if (mainContent) mainContent.classList.add('sidebar-hidden');
             }
             
-            // Инициализируем менеджер видеоплеера
-            videoPlayer = new VideoPlayerManager();
-            window.videoPlayer = videoPlayer;
+            // Инициализируем кастомный видеоплеер
+            window.videoPlayer = new CustomVideoPlayer();
         });
     </script>
 </body>

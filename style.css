@@ -1354,6 +1354,329 @@ body {
     }
 }
 
+/* Кастомный видеоплеер */
+.video-player-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background-color: #000;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-medium);
+}
+
+.video-player-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    pointer-events: none; /* Отключаем клики по iframe */
+}
+
+/* Кастомные элементы управления */
+.custom-player-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.video-player-wrapper:hover .custom-player-controls {
+    opacity: 1;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--primary-green);
+    border-radius: 2px;
+    width: 0%;
+    position: relative;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: var(--primary-green);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.progress-bar-container:hover .progress-bar::after {
+    opacity: 1;
+}
+
+.controls-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.controls-left, .controls-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.custom-control-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.custom-control-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.play-pause-btn {
+    background: var(--primary-green);
+}
+
+.play-pause-btn:hover {
+    background: var(--primary-green-hover);
+    transform: scale(1.1);
+}
+
+.volume-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.volume-slider {
+    width: 80px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    position: relative;
+    cursor: pointer;
+}
+
+.volume-level {
+    height: 100%;
+    background: white;
+    border-radius: 2px;
+    width: 70%;
+}
+
+.time-display {
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 100px;
+    text-align: center;
+}
+
+/* Полноэкранный режим */
+.video-player-wrapper.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10000;
+    border-radius: 0;
+}
+
+.video-player-wrapper.fullscreen .custom-player-controls {
+    padding: 30px;
+}
+
+/* Кнопка развернуть */
+.fullscreen-btn .fa-expand { display: block; }
+.fullscreen-btn .fa-compress { display: none; }
+
+.video-player-wrapper.fullscreen .fullscreen-btn .fa-expand { display: none; }
+.video-player-wrapper.fullscreen .fullscreen-btn .fa-compress { display: block; }
+
+/* Скриншот */
+.video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10;
+}
+
+.screenshot-preview {
+    max-width: 80%;
+    max-height: 80%;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* Настройки качества */
+.quality-menu {
+    position: absolute;
+    bottom: 70px;
+    right: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    min-width: 150px;
+    display: none;
+    z-index: 100;
+    box-shadow: var(--shadow-medium);
+}
+
+.quality-menu.show {
+    display: block;
+}
+
+.quality-option {
+    padding: 10px 15px;
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.2s;
+}
+
+.quality-option:hover {
+    background: rgba(46, 125, 50, 0.1);
+}
+
+.quality-option.active {
+    background: var(--primary-green);
+    color: white;
+}
+
+/* Скорость воспроизведения */
+.speed-menu {
+    position: absolute;
+    bottom: 70px;
+    left: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    min-width: 150px;
+    display: none;
+    z-index: 100;
+    box-shadow: var(--shadow-medium);
+}
+
+.speed-menu.show {
+    display: block;
+}
+
+.speed-option {
+    padding: 10px 15px;
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.2s;
+}
+
+.speed-option:hover {
+    background: rgba(46, 125, 50, 0.1);
+}
+
+.speed-option.active {
+    background: var(--primary-green);
+    color: white;
+}
+
+/* Уведомление о скриншоте */
+.screenshot-notification {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--primary-green);
+    color: white;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    display: none;
+    animation: slideIn 0.3s ease;
+    z-index: 100;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Мобильные элементы управления */
+@media (max-width: 768px) {
+    .custom-player-controls {
+        padding: 15px;
+    }
+    
+    .controls-main {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .controls-left, .controls-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .volume-container {
+        display: none;
+    }
+    
+    .time-display {
+        min-width: auto;
+        font-size: 12px;
+    }
+    
+    .custom-control-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+    
+    .quality-menu,
+    .speed-menu {
+        bottom: 60px;
+        min-width: 120px;
+    }
+}
+
 /* Кнопка на главной странице для мобильных */
 @media (max-width: 768px) {
     button[onclick*="goToUpload"] {

@@ -400,39 +400,154 @@ body {
     align-items: center;
 }
 
-/* VIDEO PAGE */
+/* VIDEO PAGE НОВЫЙ МАКЕТ С РЕКОМЕНДАЦИЯМИ СБОКУ */
 .video-page {
     padding: 24px;
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+/* Основной контент видео */
+.video-main-content {
+    flex: 1;
+    max-width: 1100px;
 }
 
 .video-player-container {
-    max-width: 1100px;
-    margin: 0 auto;
+    width: 100%;
+    margin-bottom: 20px;
 }
 
-.video-player {
+/* Боковая панель с рекомендациями */
+.recommendations-sidebar {
+    width: 400px;
+    flex-shrink: 0;
+    margin-top: 0;
+}
+
+.recommendations-sidebar h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.recommendations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.recommendation-card {
+    display: flex;
+    gap: 12px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    animation: slideInRight 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+    background-color: transparent;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.recommendation-card:hover {
+    background-color: var(--bg-card);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+}
+
+.recommendation-card:nth-child(1) { animation-delay: 0.1s; }
+.recommendation-card:nth-child(2) { animation-delay: 0.2s; }
+.recommendation-card:nth-child(3) { animation-delay: 0.3s; }
+.recommendation-card:nth-child(4) { animation-delay: 0.4s; }
+.recommendation-card:nth-child(5) { animation-delay: 0.5s; }
+
+.recommendation-thumbnail {
+    width: 168px;
+    height: 94px;
+    background-color: var(--bg-card);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.recommendation-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.recommendation-card:hover .recommendation-thumbnail img {
+    transform: scale(1.05);
+}
+
+.recommendation-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.recommendation-info h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text-primary);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.4;
+}
+
+.recommendation-channel {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recommendation-stats {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+/* ИСПРАВЛЕННЫЙ ВИДЕОПЛЕЕР ДЛЯ МОБИЛЬНЫХ */
+.video-player-wrapper {
+    position: relative;
     width: 100%;
     aspect-ratio: 16/9;
     background-color: #000;
     border-radius: var(--radius-md);
     overflow: hidden;
     margin-bottom: 20px;
-    animation: videoOpen 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--shadow-medium);
 }
 
-@keyframes videoOpen {
-    0% {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
+.video-player-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    pointer-events: none;
 }
 
 .video-loading {
@@ -658,88 +773,285 @@ body {
     white-space: pre-line;
 }
 
-/* RECOMMENDATIONS */
-.recommendations-sidebar {
-    max-width: 1100px;
-    margin: 0 auto;
-}
-
-.recommendations-sidebar h3 {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 20px;
-}
-
-.recommendation-card {
+/* ИСПРАВЛЕННЫЕ КАСТОМНЫЕ ЭЛЕМЕНТЫ УПРАВЛЕНИЯ */
+.custom-player-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+    padding: 15px 20px;
     display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 1;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    transform: translateY(0);
+    z-index: 10;
+}
+
+.video-player-wrapper:not(:hover) .custom-player-controls {
+    opacity: 0.3;
+}
+
+.video-player-wrapper.fullscreen:not(:hover) .custom-player-controls {
+    opacity: 0.1;
+    transform: translateY(10px);
+}
+
+.video-player-wrapper:hover .custom-player-controls {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
     cursor: pointer;
-    padding: 12px;
-    border-radius: var(--radius-md);
-    transition: background-color var(--transition-fast);
-    animation: slideInRight 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+    position: relative;
+    margin-bottom: 5px;
 }
 
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+.progress-bar {
+    height: 100%;
+    background: var(--primary-green);
+    border-radius: 2px;
+    width: 0%;
+    position: relative;
+    transition: width 0.1s linear;
 }
 
-.recommendation-card:hover {
-    background-color: var(--bg-card);
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: var(--primary-green);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s;
 }
 
-.recommendation-card:nth-child(1) { animation-delay: 0.1s; }
-.recommendation-card:nth-child(2) { animation-delay: 0.2s; }
-.recommendation-card:nth-child(3) { animation-delay: 0.3s; }
-.recommendation-card:nth-child(4) { animation-delay: 0.4s; }
-.recommendation-card:nth-child(5) { animation-delay: 0.5s; }
-
-.recommendation-thumbnail {
-    width: 160px;
-    height: 90px;
-    background-color: var(--bg-card);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    flex-shrink: 0;
+.progress-bar-container:hover .progress-bar::after {
+    opacity: 1;
 }
 
-.recommendation-thumbnail img {
+.controls-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.controls-left, .controls-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.custom-control-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+}
+
+.custom-control-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.1);
+}
+
+.play-pause-btn {
+    background: var(--primary-green);
+}
+
+.play-pause-btn:hover {
+    background: var(--primary-green-hover);
+    transform: scale(1.15);
+}
+
+.volume-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.volume-slider {
+    width: 70px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    position: relative;
+    cursor: pointer;
+}
+
+.volume-level {
+    height: 100%;
+    background: white;
+    border-radius: 2px;
+    width: 70%;
+}
+
+.time-display {
+    color: white;
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 100px;
+    text-align: center;
+}
+
+/* Полноэкранный режим */
+.video-player-wrapper.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10000;
+    border-radius: 0;
+}
+
+.video-player-wrapper.fullscreen .custom-player-controls {
+    padding: 20px 30px;
+}
+
+/* Кнопка развернуть */
+.fullscreen-btn .fa-expand { display: block; }
+.fullscreen-btn .fa-compress { display: none; }
+
+.video-player-wrapper.fullscreen .fullscreen-btn .fa-expand { display: none; }
+.video-player-wrapper.fullscreen .fullscreen-btn .fa-compress { display: block; }
+
+/* Скриншот */
+.video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-}
-
-.recommendation-info h4 {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    line-height: 1.4;
-}
-
-.recommendation-channel {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
-}
-
-.recommendation-stats {
-    font-size: 12px;
-    color: var(--text-muted);
-    display: flex;
-    gap: 6px;
+    display: none;
+    justify-content: center;
     align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10;
+}
+
+.screenshot-preview {
+    max-width: 80%;
+    max-height: 80%;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* Настройки качества */
+.quality-menu {
+    position: absolute;
+    bottom: 70px;
+    right: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    min-width: 150px;
+    display: none;
+    z-index: 100;
+    box-shadow: var(--shadow-medium);
+}
+
+.quality-menu.show {
+    display: block;
+}
+
+.quality-option {
+    padding: 10px 15px;
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.2s;
+}
+
+.quality-option:hover {
+    background: rgba(46, 125, 50, 0.1);
+}
+
+.quality-option.active {
+    background: var(--primary-green);
+    color: white;
+}
+
+/* Скорость воспроизведения */
+.speed-menu {
+    position: absolute;
+    bottom: 70px;
+    left: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    min-width: 150px;
+    display: none;
+    z-index: 100;
+    box-shadow: var(--shadow-medium);
+}
+
+.speed-menu.show {
+    display: block;
+}
+
+.speed-option {
+    padding: 10px 15px;
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.2s;
+}
+
+.speed-option:hover {
+    background: rgba(46, 125, 50, 0.1);
+}
+
+.speed-option.active {
+    background: var(--primary-green);
+    color: white;
+}
+
+/* Уведомление о скриншоте */
+.screenshot-notification {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--primary-green);
+    color: white;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    display: none;
+    animation: slideIn 0.3s ease;
+    z-index: 100;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 /* UPLOAD PAGE */
@@ -913,6 +1225,31 @@ body {
         transition: margin-left var(--transition-medium);
     }
     
+    /* МОБИЛЬНАЯ СТРАНИЦА ВИДЕО - ВЕРТИКАЛЬНЫЙ МАКЕТ */
+    .video-page {
+        flex-direction: column;
+        padding: 16px;
+    }
+    
+    .video-main-content {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .recommendations-sidebar {
+        width: 100%;
+        margin-top: 24px;
+    }
+    
+    .recommendation-card {
+        flex-direction: row;
+    }
+    
+    .recommendation-thumbnail {
+        width: 160px;
+        height: 90px;
+    }
+    
     /* Мобильный контент */
     .video-grid-container,
     .video-page,
@@ -934,6 +1271,66 @@ body {
         transform: translateY(-2px);
     }
     
+    /* Мобильный видеоплеер - УПРОЩЕННЫЕ УПРАВЛЕНИЯ */
+    .custom-player-controls {
+        padding: 10px 15px;
+        background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    }
+    
+    .controls-main {
+        gap: 8px;
+    }
+    
+    .controls-left, .controls-right {
+        gap: 8px;
+    }
+    
+    .custom-control-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+        padding: 6px;
+    }
+    
+    .play-pause-btn {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .volume-container {
+        display: none; /* Скрываем слайдер громкости на мобильных */
+    }
+    
+    .volume-btn {
+        display: block; /* Оставляем только кнопку */
+    }
+    
+    .time-display {
+        font-size: 11px;
+        min-width: 80px;
+    }
+    
+    .progress-bar-container {
+        height: 3px;
+        margin-bottom: 3px;
+    }
+    
+    /* Скрываем лишние кнопки на мобильных */
+    .speed-btn,
+    .quality-btn,
+    .screenshot-btn {
+        display: none;
+    }
+    
+    /* Упрощенное полноэкранное управление */
+    .video-player-wrapper.fullscreen .custom-player-controls {
+        padding: 15px 20px;
+    }
+    
+    .video-player-wrapper:not(:hover) .custom-player-controls {
+        opacity: 0.2; /* Более прозрачный в покое */
+    }
+    
     /* Мобильная страница видео */
     .video-meta {
         flex-direction: column;
@@ -946,10 +1343,13 @@ body {
         overflow-x: auto;
         padding-bottom: 8px;
         -webkit-overflow-scrolling: touch;
+        justify-content: space-between;
     }
     
     .video-action-btn {
         flex-shrink: 0;
+        padding: 8px 12px;
+        font-size: 13px;
     }
     
     .video-channel {
@@ -961,16 +1361,6 @@ body {
     .subscribe-btn {
         width: 100%;
         justify-content: center;
-    }
-    
-    /* Мобильные рекомендации */
-    .recommendation-card {
-        flex-direction: column;
-    }
-    
-    .recommendation-thumbnail {
-        width: 100%;
-        height: 180px;
     }
     
     /* Мобильная форма загрузки */
@@ -1274,6 +1664,25 @@ body {
     .mobile-nav-item i {
         font-size: 16px;
     }
+    
+    /* Еще более простые управления на очень маленьких экранах */
+    .custom-player-controls {
+        padding: 8px 12px;
+    }
+    
+    .time-display {
+        font-size: 10px;
+        min-width: 70px;
+    }
+    
+    .recommendation-card {
+        padding: 6px;
+    }
+    
+    .recommendation-thumbnail {
+        width: 140px;
+        height: 78px;
+    }
 }
 
 /* Desktop скрытие мобильных элементов */
@@ -1297,6 +1706,42 @@ body {
     
     .main-content {
         margin-left: 200px;
+    }
+    
+    .video-page {
+        flex-direction: column;
+    }
+    
+    .video-main-content {
+        max-width: 100%;
+    }
+    
+    .recommendations-sidebar {
+        width: 100%;
+        margin-top: 30px;
+    }
+    
+    .recommendation-card {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+    }
+    
+    .recommendations-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+    }
+    
+    .recommendation-card {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .recommendation-thumbnail {
+        width: 100%;
+        height: 160px;
+        margin-bottom: 10px;
     }
 }
 
@@ -1354,326 +1799,32 @@ body {
     }
 }
 
-/* Кастомный видеоплеер */
-.video-player-wrapper {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16/9;
-    background-color: #000;
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    margin-bottom: 20px;
-    box-shadow: var(--shadow-medium);
-}
-
-.video-player-wrapper iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-    pointer-events: none; /* Отключаем клики по iframe */
-}
-
-/* Кастомные элементы управления */
-.custom-player-controls {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.video-player-wrapper:hover .custom-player-controls {
-    opacity: 1;
-}
-
-.progress-bar-container {
-    width: 100%;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-    cursor: pointer;
-    position: relative;
-}
-
-.progress-bar {
-    height: 100%;
-    background: var(--primary-green);
-    border-radius: 2px;
-    width: 0%;
-    position: relative;
-}
-
-.progress-bar::after {
-    content: '';
-    position: absolute;
-    right: -6px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 12px;
-    height: 12px;
-    background: var(--primary-green);
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.progress-bar-container:hover .progress-bar::after {
-    opacity: 1;
-}
-
-.controls-main {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.controls-left, .controls-right {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.custom-control-btn {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-}
-
-.custom-control-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.play-pause-btn {
-    background: var(--primary-green);
-}
-
-.play-pause-btn:hover {
-    background: var(--primary-green-hover);
-    transform: scale(1.1);
-}
-
-.volume-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.volume-slider {
-    width: 80px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-    position: relative;
-    cursor: pointer;
-}
-
-.volume-level {
-    height: 100%;
-    background: white;
-    border-radius: 2px;
-    width: 70%;
-}
-
-.time-display {
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    min-width: 100px;
-    text-align: center;
-}
-
-/* Полноэкранный режим */
-.video-player-wrapper.fullscreen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 10000;
-    border-radius: 0;
-}
-
-.video-player-wrapper.fullscreen .custom-player-controls {
-    padding: 30px;
-}
-
-/* Кнопка развернуть */
-.fullscreen-btn .fa-expand { display: block; }
-.fullscreen-btn .fa-compress { display: none; }
-
-.video-player-wrapper.fullscreen .fullscreen-btn .fa-expand { display: none; }
-.video-player-wrapper.fullscreen .fullscreen-btn .fa-compress { display: block; }
-
-/* Скриншот */
-.video-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 10;
-}
-
-.screenshot-preview {
-    max-width: 80%;
-    max-height: 80%;
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-/* Настройки качества */
-.quality-menu {
-    position: absolute;
-    bottom: 70px;
-    right: 20px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 10px;
-    min-width: 150px;
-    display: none;
-    z-index: 100;
-    box-shadow: var(--shadow-medium);
-}
-
-.quality-menu.show {
-    display: block;
-}
-
-.quality-option {
-    padding: 10px 15px;
-    color: var(--text-primary);
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-    transition: background-color 0.2s;
-}
-
-.quality-option:hover {
-    background: rgba(46, 125, 50, 0.1);
-}
-
-.quality-option.active {
-    background: var(--primary-green);
-    color: white;
-}
-
-/* Скорость воспроизведения */
+/* Кастомные меню управления */
+.quality-menu,
 .speed-menu {
-    position: absolute;
-    bottom: 70px;
-    left: 20px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 10px;
-    min-width: 150px;
-    display: none;
-    z-index: 100;
-    box-shadow: var(--shadow-medium);
+    animation: menuAppear 0.2s ease;
 }
 
-.speed-menu.show {
-    display: block;
-}
-
-.speed-option {
-    padding: 10px 15px;
-    color: var(--text-primary);
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-    transition: background-color 0.2s;
-}
-
-.speed-option:hover {
-    background: rgba(46, 125, 50, 0.1);
-}
-
-.speed-option.active {
-    background: var(--primary-green);
-    color: white;
-}
-
-/* Уведомление о скриншоте */
-.screenshot-notification {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: var(--primary-green);
-    color: white;
-    padding: 10px 20px;
-    border-radius: var(--radius-md);
-    font-size: 14px;
-    display: none;
-    animation: slideIn 0.3s ease;
-    z-index: 100;
-}
-
-@keyframes slideIn {
+@keyframes menuAppear {
     from {
-        transform: translateX(100%);
         opacity: 0;
+        transform: translateY(10px);
     }
     to {
-        transform: translateX(0);
         opacity: 1;
+        transform: translateY(0);
     }
 }
 
-/* Мобильные элементы управления */
-@media (max-width: 768px) {
-    .custom-player-controls {
-        padding: 15px;
+/* Адаптация рекомендаций для разных экранов */
+@media (min-width: 1025px) and (max-width: 1200px) {
+    .recommendations-sidebar {
+        width: 350px;
     }
     
-    .controls-main {
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .controls-left, .controls-right {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .volume-container {
-        display: none;
-    }
-    
-    .time-display {
-        min-width: auto;
-        font-size: 12px;
-    }
-    
-    .custom-control-btn {
-        width: 36px;
-        height: 36px;
-        font-size: 18px;
-    }
-    
-    .quality-menu,
-    .speed-menu {
-        bottom: 60px;
-        min-width: 120px;
+    .recommendation-thumbnail {
+        width: 150px;
+        height: 84px;
     }
 }
 
@@ -1687,4 +1838,4 @@ body {
         padding: 16px 24px;
         font-size: 16px;
     }
-    }
+}

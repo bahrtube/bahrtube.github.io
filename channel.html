@@ -20,61 +20,122 @@
                 </div>
             </div>
             <div class="search-bar">
-                <input type="text" placeholder="Поиск видео...">
-                <button><i class="fas fa-search"></i></button>
+                <input type="text" placeholder="Поиск видео..." id="search-input">
+                <button id="search-button"><i class="fas fa-search"></i></button>
             </div>
             <div class="header-right">
-                <div class="user-menu" id="user-menu"></div>
+                <button class="mobile-search-btn" onclick="showMobileSearch()">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="upload-btn" onclick="checkUploadAccess()">
+                    <i class="fas fa-upload"></i> <span>Загрузить</span>
+                </button>
+                <button class="auth-btn" id="auth-btn">
+                    <i class="fas fa-user"></i> <span>Войти</span>
+                </button>
             </div>
         </header>
 
-        <main class="channel-page">
-            <div class="channel-header">
-                <div class="channel-avatar-large" id="channel-avatar-large">А</div>
-                <div class="channel-info">
-                    <h1 class="channel-name-large" id="channel-name-large">Имя канала</h1>
-                    <div class="channel-stats">
-                        <span id="channel-subscribers">0 подписчиков</span>
-                        <span id="channel-videos-count">0 видео</span>
-                        <span id="channel-views">0 просмотров</span>
+        <div class="main-content">
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="index.html" class="nav-item">
+                        <i class="fas fa-home"></i> Главная
+                    </a>
+                    <a href="#" class="nav-item" onclick="showMobileTrending()">
+                        <i class="fas fa-fire"></i> В тренде
+                    </a>
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-history"></i> История
+                    </a>
+                    <div class="sidebar-divider"></div>
+                    <h3 class="sidebar-title">Подписки</h3>
+                    <div id="subscriptions-list">
                     </div>
-                    <p class="channel-description" id="channel-description">Описание канала</p>
-                    <div class="channel-actions">
-                        <button class="subscribe-btn" id="channel-subscribe-btn">
-                            <i class="fas fa-bell"></i> Подписаться
-                        </button>
+                </nav>
+            </aside>
+
+            <main class="channel-page">
+                <!-- Шапка канала -->
+                <div class="channel-header" id="channel-header">
+                    <div class="channel-header-banner"></div>
+                    <div class="channel-header-content">
+                        <div class="channel-avatar-large" id="channel-avatar-large"></div>
+                        <div class="channel-header-info">
+                            <h1 id="channel-name-display">Загрузка...</h1>
+                            <div class="channel-handle" id="channel-handle"></div>
+                            <div class="channel-stats" id="channel-stats">
+                                <span id="channel-subs-count">0 подписчиков</span>
+                                <span>•</span>
+                                <span id="channel-videos-count">0 видео</span>
+                            </div>
+                            <div class="channel-description" id="channel-description"></div>
+                            <div class="channel-actions" id="channel-actions">
+                                <!-- Кнопки действий будут добавлены через JS -->
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="channel-tabs">
-                <button class="channel-tab active" onclick="showTab('videos')">Видео</button>
-                <button class="channel-tab" onclick="showTab('about')">О канале</button>
-            </div>
-            
-            <div id="videos-tab" class="tab-content">
-                <div class="channel-videos-grid" id="channel-videos">
+                
+                <!-- Навигация канала -->
+                <div class="channel-nav">
+                    <button class="channel-nav-item active" data-tab="videos">
+                        <i class="fas fa-video"></i> Видео
+                    </button>
+                    <button class="channel-nav-item" data-tab="about">
+                        <i class="fas fa-info-circle"></i> О канале
+                    </button>
+                    <button class="channel-nav-item" data-tab="playlists" onclick="showNotification('В разработке', 'info')">
+                        <i class="fas fa-list"></i> Плейлисты
+                    </button>
                 </div>
-            </div>
-            
-            <div id="about-tab" class="tab-content" style="display: none;">
-                <div class="about-section">
-                    <h3>Информация о канале</h3>
-                    <p id="channel-about">Нет информации</p>
-                    <p>Дата регистрации: <span id="channel-created"></span></p>
+                
+                <!-- Контент канала -->
+                <div class="channel-content">
+                    <!-- Вкладка "Видео" -->
+                    <div class="channel-tab active" id="videos-tab">
+                        <div class="channel-videos-header">
+                            <h2>Видео</h2>
+                            <div class="channel-sort">
+                                <select id="video-sort">
+                                    <option value="newest">Сначала новые</option>
+                                    <option value="oldest">Сначала старые</option>
+                                    <option value="popular">Сначала популярные</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="channel-videos-grid" id="channel-videos-grid">
+                            <!-- Видео будут загружены через JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Вкладка "О канале" -->
+                    <div class="channel-tab" id="about-tab">
+                        <div class="about-section">
+                            <h2>О канале</h2>
+                            <div class="about-content" id="about-content">
+                                <!-- Информация о канале будет загружена через JavaScript -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </main>
+            </main>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="auth.js"></script>
     <script src="script.js"></script>
+    
     <script>
         let currentChannelId = null;
+        let currentChannel = null;
+        let currentUser = null;
+        let isUserSubscribed = false;
         
-        async function loadChannelPage() {
+        // Загрузка информации о канале
+        async function loadChannelInfo() {
             const urlParams = new URLSearchParams(window.location.search);
             const channelId = urlParams.get('id');
             
@@ -84,113 +145,313 @@
             }
             
             currentChannelId = channelId;
+            currentUser = authDB.getCurrentUser();
             
             try {
-                const user = await db.getUser(channelId);
-                if (!user) {
+                // Получаем информацию о канале
+                currentChannel = await authDB.getChannelById(channelId);
+                
+                if (!currentChannel) {
+                    showNotification('Канал не найден', 'error');
                     window.location.href = 'index.html';
                     return;
                 }
                 
-                document.getElementById('channel-avatar-large').textContent = user.avatar || user.name?.charAt(0) || 'А';
-                document.getElementById('channel-name-large').textContent = user.name || 'Пользователь';
-                document.getElementById('channel-subscribers').textContent = formatNumber(user.subscribers || 0) + ' подписчиков';
-                document.getElementById('channel-views').textContent = formatNumber(user.views || 0) + ' просмотров';
-                document.getElementById('channel-created').textContent = formatDate(user.createdAt);
+                // Обновляем шапку канала
+                document.getElementById('channel-avatar-large').textContent = currentChannel.avatar || currentChannel.name.charAt(0);
+                document.getElementById('channel-name-display').textContent = currentChannel.name;
+                document.getElementById('channel-handle').textContent = `@${currentChannel.name.replace(/\s+/g, '').toLowerCase()}`;
+                document.getElementById('channel-subs-count').textContent = formatNumber(currentChannel.subscribers) + ' подписчиков';
+                document.getElementById('channel-description').textContent = currentChannel.description || 'Описание отсутствует';
                 
-                const videos = await db.getUserVideos(channelId);
-                const videosCount = Object.keys(videos || {}).length;
-                document.getElementById('channel-videos-count').textContent = videosCount + ' видео';
+                // Загружаем видео канала
+                await loadChannelVideos();
                 
-                const videosGrid = document.getElementById('channel-videos');
-                if (videosCount === 0) {
-                    videosGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px; color: #aaa;">Нет загруженных видео</p>';
-                } else {
-                    const videoArray = Object.values(videos);
-                    const sortedVideos = videoArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                    
-                    const videoCards = sortedVideos.map(video => {
-                        const youTubeId = extractYouTubeId(video.url);
-                        return `
-                            <div class="video-card" onclick="window.location.href='video.html?id=${video.id}'">
-                                <div class="video-thumbnail">
-                                    <img src="${generateThumbnail(youTubeId)}" alt="${video.title}" onerror="this.src='https://via.placeholder.com/320x180/252525/ffffff?text=No+Preview'">
-                                </div>
-                                <div class="video-details">
-                                    <h3>${video.title}</h3>
-                                    <div class="video-stats">
-                                        <span>${formatNumber(video.views || 0)} просмотров</span>
-                                        <span>•</span>
-                                        <span>${formatDate(video.timestamp)}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                    
-                    videosGrid.innerHTML = videoCards;
+                // Обновляем статистику
+                const videos = await db.getChannelVideos(channelId);
+                const videoCount = Object.keys(videos).length;
+                document.getElementById('channel-videos-count').textContent = `${videoCount} видео`;
+                
+                // Загружаем информацию для вкладки "О канале"
+                loadAboutTab();
+                
+                // Настраиваем кнопки действий
+                setupChannelActions();
+                
+                // Проверяем подписку пользователя
+                if (currentUser) {
+                    const userSubscriptions = currentUser.subscriptions || [];
+                    isUserSubscribed = userSubscriptions.includes(channelId);
                 }
-                
-                setupChannelInteractions();
                 
             } catch (error) {
-                console.error('Error loading channel:', error);
+                console.error('Error loading channel info:', error);
+                showNotification('Ошибка загрузки канала', 'error');
             }
         }
         
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.style.display = 'none';
-            });
-            document.querySelectorAll('.channel-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
+        // Загрузка видео канала
+        async function loadChannelVideos() {
+            const videosGrid = document.getElementById('channel-videos-grid');
             
-            document.getElementById(tabName + '-tab').style.display = 'block';
-            event.target.classList.add('active');
-        }
-        
-        async function setupChannelInteractions() {
-            const subscribeBtn = document.getElementById('channel-subscribe-btn');
+            if (!videosGrid) return;
             
-            if (subscribeBtn && currentUser && currentChannelId !== currentUser.uid) {
-                const isSubscribed = await db.isSubscribed(currentUser.uid, currentChannelId);
+            try {
+                videosGrid.innerHTML = `
+                    <div class="skeleton" style="height: 200px; border-radius: 12px;"></div>
+                    <div class="skeleton" style="height: 200px; border-radius: 12px;"></div>
+                    <div class="skeleton" style="height: 200px; border-radius: 12px;"></div>
+                    <div class="skeleton" style="height: 200px; border-radius: 12px;"></div>
+                `;
                 
-                if (isSubscribed) {
-                    subscribeBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Вы подписаны';
-                    subscribeBtn.classList.add('subscribed');
+                const videos = await db.getChannelVideos(currentChannelId);
+                
+                if (!videos || Object.keys(videos).length === 0) {
+                    videosGrid.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
+                            <i class="fas fa-video-slash" style="font-size: 48px; color: #666; margin-bottom: 20px;"></i>
+                            <h3 style="color: #fff; margin-bottom: 10px;">На этом канале пока нет видео</h3>
+                            <p style="color: #B0B0B0;">Здесь будут отображаться загруженные видео</p>
+                        </div>
+                    `;
+                    return;
                 }
                 
-                subscribeBtn.addEventListener('click', async () => {
-                    if (!currentUser) {
-                        showAuthModal();
-                        return;
-                    }
-                    
-                    try {
-                        const isSubscribed = await db.isSubscribed(currentUser.uid, currentChannelId);
-                        
-                        if (isSubscribed) {
-                            await db.unsubscribe(currentUser.uid, currentChannelId);
-                            subscribeBtn.innerHTML = '<i class="fas fa-bell"></i> Подписаться';
-                            subscribeBtn.classList.remove('subscribed');
-                        } else {
-                            await db.subscribe(currentUser.uid, currentChannelId);
-                            subscribeBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Вы подписаны';
-                            subscribeBtn.classList.add('subscribed');
-                        }
-                        
-                        const user = await db.getUser(currentChannelId);
-                        document.getElementById('channel-subscribers').textContent = formatNumber(user.subscribers || 0) + ' подписчиков';
-                        
-                    } catch (error) {
-                        console.error('Error updating subscription:', error);
-                    }
-                });
+                // Сортируем видео
+                const videoArray = Object.values(videos);
+                const sortSelect = document.getElementById('video-sort');
+                let sortedVideos = [...videoArray];
+                
+                if (sortSelect) {
+                    sortSelect.addEventListener('change', (e) => {
+                        sortAndDisplayVideos(videoArray, e.target.value);
+                    });
+                }
+                
+                // Отображаем видео
+                sortAndDisplayVideos(videoArray, 'newest');
+                
+            } catch (error) {
+                console.error('Error loading channel videos:', error);
+                videosGrid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #f44336;">
+                        <h3>Ошибка загрузки видео</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
             }
         }
         
-        document.addEventListener('DOMContentLoaded', loadChannelPage);
+        function sortAndDisplayVideos(videos, sortBy) {
+            const videosGrid = document.getElementById('channel-videos-grid');
+            let sortedVideos = [...videos];
+            
+            switch(sortBy) {
+                case 'newest':
+                    sortedVideos.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                    break;
+                case 'oldest':
+                    sortedVideos.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                    break;
+                case 'popular':
+                    sortedVideos.sort((a, b) => (b.views || 0) - (a.views || 0));
+                    break;
+            }
+            
+            videosGrid.innerHTML = sortedVideos
+                .map(video => createVideoCard(video))
+                .join('');
+        }
+        
+        // Загрузка вкладки "О канале"
+        function loadAboutTab() {
+            const aboutContent = document.getElementById('about-content');
+            
+            if (!aboutContent || !currentChannel) return;
+            
+            const joinDate = new Date(currentChannel.createdAt || Date.now());
+            const formattedDate = joinDate.toLocaleDateString('ru-RU', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            aboutContent.innerHTML = `
+                <div class="about-details">
+                    <h3>Описание</h3>
+                    <p class="about-description">${currentChannel.description || 'Описание отсутствует'}</p>
+                    
+                    <h3>Статистика канала</h3>
+                    <div class="about-stats">
+                        <div class="stat-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <div>
+                                <strong>Дата создания</strong>
+                                <span>${formattedDate}</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-users"></i>
+                            <div>
+                                <strong>Подписчики</strong>
+                                <span>${formatNumber(currentChannel.subscribers)}</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-video"></i>
+                            <div>
+                                <strong>Всего видео</strong>
+                                <span id="about-video-count">Загрузка...</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-eye"></i>
+                            <div>
+                                <strong>Общие просмотры</strong>
+                                <span id="about-total-views">Загрузка...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Загружаем дополнительную статистику
+            loadChannelStatistics();
+        }
+        
+        async function loadChannelStatistics() {
+            try {
+                const videos = await db.getChannelVideos(currentChannelId);
+                const videoArray = Object.values(videos);
+                
+                const totalVideos = videoArray.length;
+                const totalViews = videoArray.reduce((sum, video) => sum + (video.views || 0), 0);
+                
+                document.getElementById('about-video-count').textContent = totalVideos;
+                document.getElementById('about-total-views').textContent = formatNumber(totalViews);
+                
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+        
+        // Настройка кнопок действий канала
+        function setupChannelActions() {
+            const actionsContainer = document.getElementById('channel-actions');
+            
+            if (!actionsContainer || !currentChannel || !currentUser) return;
+            
+            const isOwnChannel = currentUser.id === currentChannelId;
+            const userSubscriptions = currentUser.subscriptions || [];
+            const isSubscribed = userSubscriptions.includes(currentChannelId);
+            
+            if (isOwnChannel) {
+                // Если это свой канал
+                actionsContainer.innerHTML = `
+                    <button class="channel-action-btn primary" onclick="window.location.href='upload.html'">
+                        <i class="fas fa-upload"></i> Загрузить видео
+                    </button>
+                    <button class="channel-action-btn secondary" onclick="showNotification('В разработке', 'info')">
+                        <i class="fas fa-cog"></i> Управление каналом
+                    </button>
+                `;
+            } else {
+                // Если это чужой канал
+                actionsContainer.innerHTML = `
+                    <button class="channel-action-btn primary ${isSubscribed ? 'subscribed' : ''}" id="subscribe-channel-btn">
+                        <i class="fas ${isSubscribed ? 'fa-check' : 'fa-bell'}"></i>
+                        ${isSubscribed ? 'Вы подписаны' : 'Подписаться'}
+                    </button>
+                    <button class="channel-action-btn secondary" onclick="showNotification('В разработке', 'info')">
+                        <i class="fas fa-share"></i> Поделиться
+                    </button>
+                `;
+                
+                // Настраиваем кнопку подписки
+                const subscribeBtn = document.getElementById('subscribe-channel-btn');
+                if (subscribeBtn) {
+                    subscribeBtn.onclick = async () => {
+                        if (isSubscribed) {
+                            const result = await authDB.unsubscribeFromChannel(currentChannelId, currentUser.id);
+                            if (result.success) {
+                                subscribeBtn.innerHTML = '<i class="fas fa-bell"></i> Подписаться';
+                                subscribeBtn.className = 'channel-action-btn primary';
+                                showNotification('Вы отписались от канала', 'success');
+                                
+                                // Обновляем счетчик подписчиков
+                                const subsElement = document.getElementById('channel-subs-count');
+                                if (subsElement) {
+                                    const currentSubs = parseInt(currentChannel.subscribers) || 0;
+                                    const newSubs = Math.max(currentSubs - 1, 0);
+                                    subsElement.textContent = formatNumber(newSubs) + ' подписчиков';
+                                    currentChannel.subscribers = newSubs;
+                                }
+                            }
+                        } else {
+                            const result = await authDB.subscribeToChannel(currentChannelId, currentUser.id);
+                            if (result.success) {
+                                subscribeBtn.innerHTML = '<i class="fas fa-check"></i> Вы подписаны';
+                                subscribeBtn.className = 'channel-action-btn primary subscribed';
+                                showNotification('Вы подписались на канал!', 'success');
+                                
+                                // Обновляем счетчик подписчиков
+                                const subsElement = document.getElementById('channel-subs-count');
+                                if (subsElement) {
+                                    const currentSubs = parseInt(currentChannel.subscribers) || 0;
+                                    const newSubs = currentSubs + 1;
+                                    subsElement.textContent = formatNumber(newSubs) + ' подписчиков';
+                                    currentChannel.subscribers = newSubs;
+                                }
+                            }
+                        }
+                    };
+                }
+            }
+        }
+        
+        // Навигация по вкладкам канала
+        function setupChannelTabs() {
+            const tabButtons = document.querySelectorAll('.channel-nav-item');
+            const tabContents = document.querySelectorAll('.channel-tab');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.dataset.tab;
+                    
+                    // Обновляем активные кнопки
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    // Показываем активную вкладку
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === `${tabId}-tab`) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+        }
+        
+        // Инициализация страницы
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Проверяем авторизацию
+            checkAuthOnLoad();
+            
+            // Загружаем информацию о канале
+            await loadChannelInfo();
+            
+            // Настраиваем вкладки
+            setupChannelTabs();
+            
+            // Скрываем sidebar на мобильных
+            if (window.innerWidth <= 768) {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                if (sidebar) sidebar.classList.add('closed');
+                if (mainContent) mainContent.classList.add('sidebar-hidden');
+            }
+        });
     </script>
 </body>
 </html>

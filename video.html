@@ -64,143 +64,147 @@
             </aside>
 
             <main class="video-page">
-                <div class="video-player-container">
-                    <!-- Кастомный видеоплеер -->
-                    <div class="video-player-wrapper" id="video-player-wrapper">
-                        <div class="video-loading" id="video-loading">
-                            <i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i>
-                            Загрузка плеера...
-                        </div>
-                        
-                        <!-- Контейнер для YouTube iframe -->
-                        <div id="youtube-iframe-container"></div>
-                        
-                        <!-- Кастомные элементы управления -->
-                        <div class="custom-player-controls" id="custom-controls">
-                            <div class="progress-bar-container" id="progress-bar-container">
-                                <div class="progress-bar" id="progress-bar"></div>
+                <!-- Основной контент видео -->
+                <div class="video-main-content">
+                    <div class="video-player-container">
+                        <!-- Кастомный видеоплеер -->
+                        <div class="video-player-wrapper" id="video-player-wrapper">
+                            <div class="video-loading" id="video-loading">
+                                <i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i>
+                                Загрузка плеера...
                             </div>
                             
-                            <div class="controls-main">
-                                <div class="controls-left">
-                                    <button class="custom-control-btn play-pause-btn" id="play-pause-btn">
-                                        <i class="fas fa-play" id="play-icon"></i>
-                                        <i class="fas fa-pause" id="pause-icon" style="display: none;"></i>
-                                    </button>
-                                    
-                                    <button class="custom-control-btn volume-btn" id="volume-btn">
-                                        <i class="fas fa-volume-up" id="volume-icon"></i>
-                                    </button>
-                                    
-                                    <div class="volume-container" id="volume-container">
-                                        <div class="volume-slider" id="volume-slider">
-                                            <div class="volume-level" id="volume-level"></div>
+                            <!-- Контейнер для YouTube iframe -->
+                            <div id="youtube-iframe-container"></div>
+                            
+                            <!-- Кастомные элементы управления -->
+                            <div class="custom-player-controls" id="custom-controls">
+                                <div class="progress-bar-container" id="progress-bar-container">
+                                    <div class="progress-bar" id="progress-bar"></div>
+                                </div>
+                                
+                                <div class="controls-main">
+                                    <div class="controls-left">
+                                        <button class="custom-control-btn play-pause-btn" id="play-pause-btn">
+                                            <i class="fas fa-play" id="play-icon"></i>
+                                            <i class="fas fa-pause" id="pause-icon" style="display: none;"></i>
+                                        </button>
+                                        
+                                        <button class="custom-control-btn volume-btn" id="volume-btn">
+                                            <i class="fas fa-volume-up" id="volume-icon"></i>
+                                        </button>
+                                        
+                                        <div class="volume-container" id="volume-container">
+                                            <div class="volume-slider" id="volume-slider">
+                                                <div class="volume-level" id="volume-level"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="time-display" id="time-display">
+                                            <span id="current-time">0:00</span> / <span id="total-time">0:00</span>
                                         </div>
                                     </div>
                                     
-                                    <div class="time-display" id="time-display">
-                                        <span id="current-time">0:00</span> / <span id="total-time">0:00</span>
+                                    <div class="controls-right">
+                                        <button class="custom-control-btn speed-btn" id="speed-btn">
+                                            <i class="fas fa-tachometer-alt"></i>
+                                        </button>
+                                        
+                                        <button class="custom-control-btn quality-btn" id="quality-btn">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        
+                                        <button class="custom-control-btn screenshot-btn" id="screenshot-btn">
+                                            <i class="fas fa-camera"></i>
+                                        </button>
+                                        
+                                        <button class="custom-control-btn fullscreen-btn" id="fullscreen-btn">
+                                            <i class="fas fa-expand"></i>
+                                            <i class="fas fa-compress" style="display: none;"></i>
+                                        </button>
                                     </div>
                                 </div>
-                                
-                                <div class="controls-right">
-                                    <button class="custom-control-btn speed-btn" id="speed-btn">
-                                        <i class="fas fa-tachometer-alt"></i>
+                            </div>
+                            
+                            <!-- Меню скорости -->
+                            <div class="speed-menu" id="speed-menu">
+                                <div class="speed-option" data-speed="0.25">0.25x</div>
+                                <div class="speed-option" data-speed="0.5">0.5x</div>
+                                <div class="speed-option active" data-speed="1">1x (нормально)</div>
+                                <div class="speed-option" data-speed="1.25">1.25x</div>
+                                <div class="speed-option" data-speed="1.5">1.5x</div>
+                                <div class="speed-option" data-speed="2">2x</div>
+                            </div>
+                            
+                            <!-- Меню качества -->
+                            <div class="quality-menu" id="quality-menu">
+                                <div class="quality-option active" data-quality="auto">Авто</div>
+                                <div class="quality-option" data-quality="144p">144p</div>
+                                <div class="quality-option" data-quality="240p">240p</div>
+                                <div class="quality-option" data-quality="360p">360p</div>
+                                <div class="quality-option" data-quality="480p">480p</div>
+                                <div class="quality-option" data-quality="720p">720p</div>
+                                <div class="quality-option" data-quality="1080p">1080p</div>
+                            </div>
+                            
+                            <!-- Оверлей для скриншота -->
+                            <div class="video-overlay" id="screenshot-overlay">
+                                <img class="screenshot-preview" id="screenshot-preview" alt="Скриншот">
+                            </div>
+                            
+                            <!-- Уведомление о скриншоте -->
+                            <div class="screenshot-notification" id="screenshot-notification">
+                                Скриншот сохранен в буфер обмена
+                            </div>
+                        </div>
+                        
+                        <div class="video-info">
+                            <h1 id="video-title">Название видео</h1>
+                            <div class="video-meta">
+                                <div class="video-stats">
+                                    <span id="video-views">0 просмотров</span>
+                                    <span id="video-date">Сегодня</span>
+                                </div>
+                                <div class="video-actions">
+                                    <button class="video-action-btn" id="like-btn">
+                                        <i class="far fa-thumbs-up"></i>
+                                        <span id="like-count">0</span>
                                     </button>
-                                    
-                                    <button class="custom-control-btn quality-btn" id="quality-btn">
-                                        <i class="fas fa-cog"></i>
+                                    <button class="video-action-btn" id="dislike-btn">
+                                        <i class="far fa-thumbs-down"></i>
+                                        <span id="dislike-count">0</span>
                                     </button>
-                                    
-                                    <button class="custom-control-btn screenshot-btn" id="screenshot-btn">
-                                        <i class="fas fa-camera"></i>
+                                    <button class="video-action-btn" onclick="showNotification('Функция в разработке', 'info')">
+                                        <i class="fas fa-share"></i> Поделиться
                                     </button>
-                                    
-                                    <button class="custom-control-btn fullscreen-btn" id="fullscreen-btn">
-                                        <i class="fas fa-expand"></i>
-                                        <i class="fas fa-compress" style="display: none;"></i>
+                                    <button class="video-action-btn" onclick="showNotification('Функция в разработке', 'info')">
+                                        <i class="fas fa-plus"></i> Сохранить
                                     </button>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Меню скорости -->
-                        <div class="speed-menu" id="speed-menu">
-                            <div class="speed-option" data-speed="0.25">0.25x</div>
-                            <div class="speed-option" data-speed="0.5">0.5x</div>
-                            <div class="speed-option active" data-speed="1">1x (нормально)</div>
-                            <div class="speed-option" data-speed="1.25">1.25x</div>
-                            <div class="speed-option" data-speed="1.5">1.5x</div>
-                            <div class="speed-option" data-speed="2">2x</div>
+                        <div class="video-channel">
+                            <div class="channel-info">
+                                <div class="channel-avatar" id="channel-avatar">А</div>
+                                <div class="channel-details">
+                                    <h3 id="channel-name">Автор</h3>
+                                    <span id="channel-subs">0 подписчиков</span>
+                                </div>
+                            </div>
+                            <button class="subscribe-btn" id="subscribe-btn">
+                                <i class="fas fa-bell"></i> Подписаться
+                            </button>
                         </div>
                         
-                        <!-- Меню качества -->
-                        <div class="quality-menu" id="quality-menu">
-                            <div class="quality-option active" data-quality="auto">Авто</div>
-                            <div class="quality-option" data-quality="144p">144p</div>
-                            <div class="quality-option" data-quality="240p">240p</div>
-                            <div class="quality-option" data-quality="360p">360p</div>
-                            <div class="quality-option" data-quality="480p">480p</div>
-                            <div class="quality-option" data-quality="720p">720p</div>
-                            <div class="quality-option" data-quality="1080p">1080p</div>
+                        <div class="video-description">
+                            <h3>Описание</h3>
+                            <p id="video-description">Описание видео</p>
                         </div>
-                        
-                        <!-- Оверлей для скриншота -->
-                        <div class="video-overlay" id="screenshot-overlay">
-                            <img class="screenshot-preview" id="screenshot-preview" alt="Скриншот">
-                        </div>
-                        
-                        <!-- Уведомление о скриншоте -->
-                        <div class="screenshot-notification" id="screenshot-notification">
-                            Скриншот сохранен в буфер обмена
-                        </div>
-                    </div>
-                    
-                    <div class="video-info">
-                        <h1 id="video-title">Название видео</h1>
-                        <div class="video-meta">
-                            <div class="video-stats">
-                                <span id="video-views">0 просмотров</span>
-                                <span id="video-date">Сегодня</span>
-                            </div>
-                            <div class="video-actions">
-                                <button class="video-action-btn" id="like-btn">
-                                    <i class="far fa-thumbs-up"></i>
-                                    <span id="like-count">0</span>
-                                </button>
-                                <button class="video-action-btn" id="dislike-btn">
-                                    <i class="far fa-thumbs-down"></i>
-                                    <span id="dislike-count">0</span>
-                                </button>
-                                <button class="video-action-btn" onclick="showNotification('Функция в разработке', 'info')">
-                                    <i class="fas fa-share"></i> Поделиться
-                                </button>
-                                <button class="video-action-btn" onclick="showNotification('Функция в разработке', 'info')">
-                                    <i class="fas fa-plus"></i> Сохранить
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="video-channel">
-                        <div class="channel-info">
-                            <div class="channel-avatar" id="channel-avatar">А</div>
-                            <div class="channel-details">
-                                <h3 id="channel-name">Автор</h3>
-                                <span id="channel-subs">0 подписчиков</span>
-                            </div>
-                        </div>
-                        <button class="subscribe-btn" id="subscribe-btn">
-                            <i class="fas fa-bell"></i> Подписаться
-                        </button>
-                    </div>
-                    
-                    <div class="video-description">
-                        <h3>Описание</h3>
-                        <p id="video-description">Описание видео</p>
                     </div>
                 </div>
                 
+                <!-- Боковая панель с рекомендациями -->
                 <div class="recommendations-sidebar">
                     <h3>Рекомендации</h3>
                     <div class="recommendations-list" id="recommendations-list">
@@ -231,6 +235,8 @@
                 this.quality = 'auto';
                 this.updateInterval = null;
                 this.youTubeId = null;
+                this.controlsTimeout = null;
+                this.isFullscreen = false;
                 
                 this.init();
             }
@@ -249,7 +255,7 @@
                 const videoInfo = await this.loadVideoInfo(videoId);
                 
                 if (!videoInfo) {
-                    showNotification('Видео не найдено', 'error');
+                    this.showError('Видео не найдено');
                     return;
                 }
                 
@@ -257,7 +263,7 @@
                 this.youTubeId = this.extractYouTubeId(videoInfo.url);
                 
                 if (!this.youTubeId) {
-                    showNotification('Неверная ссылка на YouTube', 'error');
+                    this.showError('Неверная ссылка на YouTube');
                     return;
                 }
                 
@@ -372,8 +378,8 @@
                 // Запускаем обновление времени
                 this.startUpdateInterval();
                 
-                // Показываем элементы управления
-                document.getElementById('custom-controls').style.opacity = '1';
+                // Устанавливаем таймаут для скрытия контролов
+                this.resetControlsTimeout();
                 
                 // Инициализируем взаимодействия (лайки и т.д.)
                 this.setupVideoInteractions();
@@ -385,6 +391,7 @@
                     case YT.PlayerState.PLAYING:
                         this.isPlaying = true;
                         this.updatePlayPauseButton();
+                        this.resetControlsTimeout();
                         break;
                     case YT.PlayerState.PAUSED:
                         this.isPlaying = false;
@@ -439,34 +446,46 @@
             }
             
             setupEventListeners() {
+                const playerWrapper = document.getElementById('video-player-wrapper');
+                
                 // Кнопка play/pause
-                document.getElementById('play-pause-btn').addEventListener('click', () => {
+                document.getElementById('play-pause-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
                     this.togglePlayPause();
+                    this.resetControlsTimeout();
                 });
                 
                 // Прогресс бар
                 const progressBar = document.getElementById('progress-bar-container');
                 progressBar.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     const rect = progressBar.getBoundingClientRect();
                     const percent = (e.clientX - rect.left) / rect.width;
                     this.seekTo(percent * this.duration);
+                    this.resetControlsTimeout();
                 });
                 
                 // Громкость
-                document.getElementById('volume-btn').addEventListener('click', () => {
+                document.getElementById('volume-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
                     this.toggleMute();
+                    this.resetControlsTimeout();
                 });
                 
                 const volumeSlider = document.getElementById('volume-slider');
                 volumeSlider.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     const rect = volumeSlider.getBoundingClientRect();
                     const percent = (e.clientX - rect.left) / rect.width;
                     this.setVolume(percent * 100);
+                    this.resetControlsTimeout();
                 });
                 
                 // Полноэкранный режим
-                document.getElementById('fullscreen-btn').addEventListener('click', () => {
+                document.getElementById('fullscreen-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
                     this.toggleFullscreen();
+                    this.resetControlsTimeout();
                 });
                 
                 // Скорость воспроизведения
@@ -474,10 +493,12 @@
                     e.stopPropagation();
                     const menu = document.getElementById('speed-menu');
                     menu.classList.toggle('show');
+                    this.resetControlsTimeout();
                 });
                 
                 document.querySelectorAll('.speed-option').forEach(option => {
                     option.addEventListener('click', (e) => {
+                        e.stopPropagation();
                         const speed = parseFloat(e.target.dataset.speed);
                         this.setPlaybackRate(speed);
                         
@@ -489,6 +510,7 @@
                         
                         // Закрываем меню
                         document.getElementById('speed-menu').classList.remove('show');
+                        this.resetControlsTimeout();
                     });
                 });
                 
@@ -497,20 +519,28 @@
                     e.stopPropagation();
                     const menu = document.getElementById('quality-menu');
                     menu.classList.toggle('show');
+                    this.resetControlsTimeout();
                 });
                 
                 // Скриншот
-                document.getElementById('screenshot-btn').addEventListener('click', () => {
+                document.getElementById('screenshot-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
                     this.takeScreenshot();
+                    this.resetControlsTimeout();
                 });
                 
                 // Закрытие меню при клике вне их
                 document.addEventListener('click', (e) => {
-                    if (!e.target.closest('#speed-btn')) {
+                    if (!e.target.closest('#speed-btn') && !e.target.closest('#speed-menu')) {
                         document.getElementById('speed-menu').classList.remove('show');
                     }
-                    if (!e.target.closest('#quality-btn')) {
+                    if (!e.target.closest('#quality-btn') && !e.target.closest('#quality-menu')) {
                         document.getElementById('quality-menu').classList.remove('show');
+                    }
+                    
+                    // Сброс таймаута контролов при любом клике на плеере
+                    if (e.target.closest('#video-player-wrapper')) {
+                        this.resetControlsTimeout();
                     }
                 });
                 
@@ -524,45 +554,65 @@
                         case 'k':
                             e.preventDefault();
                             this.togglePlayPause();
+                            this.resetControlsTimeout();
                             break;
                         case 'f':
                             e.preventDefault();
                             this.toggleFullscreen();
+                            this.resetControlsTimeout();
                             break;
                         case 'm':
                             e.preventDefault();
                             this.toggleMute();
+                            this.resetControlsTimeout();
                             break;
                         case 'ArrowLeft':
                             e.preventDefault();
                             this.seekTo(this.currentTime - 5);
+                            this.resetControlsTimeout();
                             break;
                         case 'ArrowRight':
                             e.preventDefault();
                             this.seekTo(this.currentTime + 5);
+                            this.resetControlsTimeout();
                             break;
                         case 'ArrowUp':
                             e.preventDefault();
                             this.setVolume(Math.min(this.volume + 10, 100));
+                            this.resetControlsTimeout();
                             break;
                         case 'ArrowDown':
                             e.preventDefault();
                             this.setVolume(Math.max(this.volume - 10, 0));
+                            this.resetControlsTimeout();
                             break;
                     }
                 });
                 
                 // Анимация элементов управления при наведении
-                const playerWrapper = document.getElementById('video-player-wrapper');
                 playerWrapper.addEventListener('mouseenter', () => {
-                    document.getElementById('custom-controls').style.opacity = '1';
+                    this.showControls();
                 });
                 
                 playerWrapper.addEventListener('mouseleave', () => {
-                    // Не скрываем полностью, только делаем полупрозрачным
+                    // Не скрываем сразу, даем время пользователю
                     if (this.isPlaying) {
-                        document.getElementById('custom-controls').style.opacity = '0.3';
+                        this.resetControlsTimeout();
                     }
+                });
+                
+                playerWrapper.addEventListener('mousemove', () => {
+                    this.showControls();
+                    this.resetControlsTimeout();
+                });
+                
+                // Обработка полноэкранного режима
+                document.addEventListener('fullscreenchange', () => {
+                    this.isFullscreen = !!document.fullscreenElement;
+                });
+                
+                document.addEventListener('webkitfullscreenchange', () => {
+                    this.isFullscreen = !!document.webkitFullscreenElement;
                 });
             }
             
@@ -581,6 +631,40 @@
                         this.updateCurrentTime();
                     }
                 }, 100);
+            }
+            
+            resetControlsTimeout() {
+                if (this.controlsTimeout) {
+                    clearTimeout(this.controlsTimeout);
+                }
+                
+                // Показываем контролы
+                this.showControls();
+                
+                // Устанавливаем таймаут для скрытия (только если видео играет и не в полноэкранном режиме)
+                if (this.isPlaying) {
+                    this.controlsTimeout = setTimeout(() => {
+                        if (this.isPlaying) {
+                            this.hideControls();
+                        }
+                    }, 3000);
+                }
+            }
+            
+            showControls() {
+                const controls = document.getElementById('custom-controls');
+                if (controls) {
+                    controls.style.opacity = '1';
+                    controls.style.transform = 'translateY(0)';
+                }
+            }
+            
+            hideControls() {
+                const controls = document.getElementById('custom-controls');
+                if (controls && this.isPlaying) {
+                    controls.style.opacity = this.isFullscreen ? '0.1' : '0.3';
+                    controls.style.transform = this.isFullscreen ? 'translateY(10px)' : 'translateY(0)';
+                }
             }
             
             updateProgressBar() {
@@ -699,6 +783,7 @@
                         wrapper.msRequestFullscreen();
                     }
                     wrapper.classList.add('fullscreen');
+                    this.isFullscreen = true;
                 } else {
                     if (document.exitFullscreen) {
                         document.exitFullscreen();
@@ -708,12 +793,12 @@
                         document.msExitFullscreen();
                     }
                     wrapper.classList.remove('fullscreen');
+                    this.isFullscreen = false;
                 }
             }
             
-            async takeScreenshot() {
+            takeScreenshot() {
                 // Не реализовано из-за CORS политики YouTube
-                // В реальном проекте нужно использовать серверный прокси
                 this.showScreenshotNotification();
             }
             

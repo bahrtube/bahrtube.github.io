@@ -230,11 +230,12 @@
                 this.playbackRate = 1;
                 this.quality = 'auto';
                 this.updateInterval = null;
+                this.youTubeId = null;
                 
                 this.init();
             }
             
-            init() {
+            async init() {
                 // Получаем ID видео из URL
                 const urlParams = new URLSearchParams(window.location.search);
                 const videoId = urlParams.get('id');
@@ -245,13 +246,32 @@
                 }
                 
                 // Получаем информацию о видео из Firebase
-                this.loadVideoInfo(videoId);
+                const videoInfo = await this.loadVideoInfo(videoId);
+                
+                if (!videoInfo) {
+                    showNotification('Видео не найдено', 'error');
+                    return;
+                }
+                
+                // Извлекаем YouTube ID из ссылки
+                this.youTubeId = this.extractYouTubeId(videoInfo.url);
+                
+                if (!this.youTubeId) {
+                    showNotification('Неверная ссылка на YouTube', 'error');
+                    return;
+                }
                 
                 // Инициализируем YouTube Player API
-                this.initYouTubePlayer(videoId);
+                this.initYouTubePlayer();
                 
                 // Настраиваем обработчики событий
                 this.setupEventListeners();
+            }
+            
+            extractYouTubeId(url) {
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[2].length === 11) ? match[2] : null;
             }
             
             async loadVideoInfo(videoId) {
@@ -260,8 +280,11 @@
                     
                     if (!video) {
                         window.location.href = 'index.html';
-                        return;
+                        return null;
                     }
+                    
+                    // Сохраняем currentVideoId для лайков/дизлайков
+                    window.currentVideoId = videoId;
                     
                     document.getElementById('video-title').textContent = video.title || 'Без названия';
                     document.getElementById('video-views').textContent = formatNumber(video.views || 0) + ' просмотров';
@@ -276,39 +299,64 @@
                     // Увеличиваем просмотры
                     await db.updateVideo(videoId, { views: (video.views || 0) + 1 });
                     
+                    // Загружаем рекомендации
+                    loadRecommendations(videoId);
+                    
+                    return video;
+                    
                 } catch (error) {
                     console.error('Error loading video info:', error);
+                    return null;
                 }
             }
             
-            initYouTubePlayer(videoId) {
-                // YouTube Player API загружает плеер асинхронно
-                // Он будет доступен через глобальную функцию onYouTubeIframeAPIReady
-                window.onYouTubeIframeAPIReady = () => {
+            initYouTubePlayer() {
+                // Проверяем, загружена ли уже YouTube API
+                if (window.YT && window.YT.Player) {
+                    this.createPlayer();
+                } else {
+                    // Если API еще не загружен, ждем события
+                    window.onYouTubeIframeAPIReady = () => {
+                        this.createPlayer();
+                    };
+                    
+                    // На всякий случай, если событие уже произошло
+                    setTimeout(() => {
+                        if (window.YT && window.YT.Player && !this.player) {
+                            this.createPlayer();
+                        }
+                    }, 1000);
+                }
+            }
+            
+            createPlayer() {
+                try {
+                    console.log('Creating YouTube player with ID:', this.youTubeId);
+                    
                     this.player = new YT.Player('youtube-iframe-container', {
                         height: '100%',
                         width: '100%',
-                        videoId: videoId,
+                        videoId: this.youTubeId,
                         playerVars: {
                             'autoplay': 1,
-                            'controls': 0, // Скрываем стандартные элементы управления
-                            'disablekb': 1, // Отключаем клавиатурные команды
-                            'fs': 0, // Скрываем кнопку полноэкранного режима
-                            'modestbranding': 1, // Минимальный брендинг
-                            'rel': 0, // Не показывать похожие видео
-                            'showinfo': 0, // Скрываем информацию
-                            'iv_load_policy': 3 // Скрываем аннотации
+                            'controls': 0,
+                            'disablekb': 1,
+                            'fs': 0,
+                            'modestbranding': 1,
+                            'rel': 0,
+                            'showinfo': 0,
+                            'iv_load_policy': 3
                         },
                         events: {
                             'onReady': (event) => this.onPlayerReady(event),
-                            'onStateChange': (event) => this.onPlayerStateChange(event)
+                            'onStateChange': (event) => this.onPlayerStateChange(event),
+                            'onError': (event) => this.onPlayerError(event)
                         }
                     });
-                };
-                
-                // Если API уже загружен
-                if (window.YT && YT.Player) {
-                    window.onYouTubeIframeAPIReady();
+                    
+                } catch (error) {
+                    console.error('Error creating YouTube player:', error);
+                    this.showError('Ошибка загрузки плеера');
                 }
             }
             
@@ -316,15 +364,23 @@
                 console.log('YouTube player ready');
                 this.duration = event.target.getDuration();
                 this.updateTotalTime();
+                this.setVolume(this.volume);
                 
                 // Скрываем индикатор загрузки
                 document.getElementById('video-loading').style.display = 'none';
                 
                 // Запускаем обновление времени
                 this.startUpdateInterval();
+                
+                // Показываем элементы управления
+                document.getElementById('custom-controls').style.opacity = '1';
+                
+                // Инициализируем взаимодействия (лайки и т.д.)
+                this.setupVideoInteractions();
             }
             
             onPlayerStateChange(event) {
+                console.log('Player state changed:', event.data);
                 switch(event.data) {
                     case YT.PlayerState.PLAYING:
                         this.isPlaying = true;
@@ -338,7 +394,48 @@
                         this.isPlaying = false;
                         this.updatePlayPauseButton();
                         break;
+                    case YT.PlayerState.BUFFERING:
+                        console.log('Buffering...');
+                        break;
+                    case YT.PlayerState.CUED:
+                        console.log('Video cued');
+                        break;
                 }
+            }
+            
+            onPlayerError(event) {
+                console.error('YouTube player error:', event.data);
+                let errorMessage = 'Ошибка загрузки видео';
+                
+                switch(event.data) {
+                    case 2:
+                        errorMessage = 'Неверный YouTube ID';
+                        break;
+                    case 5:
+                        errorMessage = 'Ошибка HTML5 плеера';
+                        break;
+                    case 100:
+                        errorMessage = 'Видео не найдено';
+                        break;
+                    case 101:
+                    case 150:
+                        errorMessage = 'Владелец запретил встраивание';
+                        break;
+                }
+                
+                this.showError(errorMessage);
+            }
+            
+            showError(message) {
+                document.getElementById('video-loading').innerHTML = `
+                    <div style="text-align: center; color: #f44336;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px;"></i>
+                        <h3 style="margin-bottom: 12px;">${message}</h3>
+                        <button onclick="window.history.back()" style="padding: 10px 20px; background-color: #2E7D32; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            Назад
+                        </button>
+                    </div>
+                `;
             }
             
             setupEventListeners() {
@@ -419,6 +516,9 @@
                 
                 // Управление с клавиатуры
                 document.addEventListener('keydown', (e) => {
+                    // Проверяем, что фокус не в поле ввода
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                    
                     switch(e.key) {
                         case ' ':
                         case 'k':
@@ -451,11 +551,31 @@
                             break;
                     }
                 });
+                
+                // Анимация элементов управления при наведении
+                const playerWrapper = document.getElementById('video-player-wrapper');
+                playerWrapper.addEventListener('mouseenter', () => {
+                    document.getElementById('custom-controls').style.opacity = '1';
+                });
+                
+                playerWrapper.addEventListener('mouseleave', () => {
+                    // Не скрываем полностью, только делаем полупрозрачным
+                    if (this.isPlaying) {
+                        document.getElementById('custom-controls').style.opacity = '0.3';
+                    }
+                });
+            }
+            
+            setupVideoInteractions() {
+                // Инициализация лайков/дизлайков/подписок
+                if (typeof setupVideoInteractions === 'function') {
+                    setupVideoInteractions();
+                }
             }
             
             startUpdateInterval() {
                 this.updateInterval = setInterval(() => {
-                    if (this.player && this.isPlaying) {
+                    if (this.player && this.player.getCurrentTime) {
                         this.currentTime = this.player.getCurrentTime();
                         this.updateProgressBar();
                         this.updateCurrentTime();
@@ -464,8 +584,10 @@
             }
             
             updateProgressBar() {
-                const progressPercent = (this.currentTime / this.duration) * 100;
-                document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                if (this.duration > 0) {
+                    const progressPercent = (this.currentTime / this.duration) * 100;
+                    document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                }
             }
             
             updateCurrentTime() {
@@ -515,6 +637,13 @@
                 
                 this.volume = Math.max(0, Math.min(100, volume));
                 this.player.setVolume(this.volume);
+                
+                // Размутить если был выключен звук
+                if (this.isMuted && this.volume > 0) {
+                    this.player.unMute();
+                    this.isMuted = false;
+                }
+                
                 this.updateVolumeUI();
             }
             
@@ -535,15 +664,19 @@
                 const volumeLevel = document.getElementById('volume-level');
                 const volumeIcon = document.getElementById('volume-icon');
                 
-                volumeLevel.style.width = `${this.volume}%`;
+                if (volumeLevel) {
+                    volumeLevel.style.width = `${this.volume}%`;
+                }
                 
-                // Обновляем иконку громкости
-                if (this.isMuted || this.volume === 0) {
-                    volumeIcon.className = 'fas fa-volume-mute';
-                } else if (this.volume < 50) {
-                    volumeIcon.className = 'fas fa-volume-down';
-                } else {
-                    volumeIcon.className = 'fas fa-volume-up';
+                if (volumeIcon) {
+                    // Обновляем иконку громкости
+                    if (this.isMuted || this.volume === 0) {
+                        volumeIcon.className = 'fas fa-volume-mute';
+                    } else if (this.volume < 50) {
+                        volumeIcon.className = 'fas fa-volume-down';
+                    } else {
+                        volumeIcon.className = 'fas fa-volume-up';
+                    }
                 }
             }
             
@@ -579,33 +712,9 @@
             }
             
             async takeScreenshot() {
-                if (!this.player) return;
-                
-                try {
-                    // Получаем текущий кадр из видео
-                    const videoElement = document.querySelector('#youtube-iframe-container iframe');
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    
-                    // Получаем размеры видео
-                    const videoWidth = videoElement.offsetWidth;
-                    const videoHeight = videoElement.offsetHeight;
-                    
-                    // Устанавливаем размеры canvas
-                    canvas.width = videoWidth;
-                    canvas.height = videoHeight;
-                    
-                    // Рисуем видео на canvas
-                    // Note: Это не будет работать из-за политики CORS YouTube
-                    // В реальном проекте нужно использовать серверный прокси
-                    
-                    // Вместо этого показываем сообщение
-                    this.showScreenshotNotification();
-                    
-                } catch (error) {
-                    console.error('Error taking screenshot:', error);
-                    showNotification('Не удалось сделать скриншот', 'error');
-                }
+                // Не реализовано из-за CORS политики YouTube
+                // В реальном проекте нужно использовать серверный прокси
+                this.showScreenshotNotification();
             }
             
             showScreenshotNotification() {
@@ -642,15 +751,6 @@
             
             // Инициализируем кастомный видеоплеер
             window.videoPlayer = new CustomVideoPlayer();
-            
-            // Загружаем рекомендации
-            setTimeout(() => {
-                const urlParams = new URLSearchParams(window.location.search);
-                const videoId = urlParams.get('id');
-                if (videoId) {
-                    loadRecommendations(videoId);
-                }
-            }, 1000);
         });
     </script>
 </body>

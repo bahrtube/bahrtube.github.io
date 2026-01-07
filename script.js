@@ -20,8 +20,11 @@ const db = {
     // Получение всех видео
     getAllVideos: async () => {
         try {
+            console.log('Получаем видео из Firebase...');
             const snapshot = await database.ref('videos').once('value');
-            return snapshot.val() || {};
+            const videos = snapshot.val();
+            console.log('Получено видео:', videos ? Object.keys(videos).length : 0);
+            return videos || {};
         } catch (error) {
             console.error('Ошибка получения видео:', error);
             return {};
@@ -76,10 +79,11 @@ const db = {
                 likes: 0,
                 dislikes: 0,
                 views: Math.floor(Math.random() * 1000),
-                subscribers: user ? (user.subscribers || 0) : 0
+                subscribers: 0
             };
             
             await newVideoRef.set(videoWithId);
+            console.log('Видео добавлено с ID:', videoId);
             return videoId;
         } catch (error) {
             console.error('Ошибка добавления видео:', error);
@@ -91,10 +95,8 @@ const db = {
     updateVideo: async (videoId, updates) => {
         try {
             await database.ref(`videos/${videoId}`).update(updates);
-            return true;
         } catch (error) {
             console.error('Ошибка обновления видео:', error);
-            return false;
         }
     },
 
@@ -118,60 +120,11 @@ const db = {
             console.error('Ошибка получения видео канала:', error);
             return {};
         }
-    },
-
-    // Получение комментариев видео
-    getVideoComments: async (videoId) => {
-        try {
-            const snapshot = await database.ref(`comments/${videoId}`).once('value');
-            return snapshot.val() || {};
-        } catch (error) {
-            console.error('Ошибка получения комментариев:', error);
-            return {};
-        }
-    },
-
-    // Добавление комментария
-    addComment: async (videoId, commentData) => {
-        try {
-            const commentRef = database.ref(`comments/${videoId}`).push();
-            const commentId = commentRef.key;
-            
-            const commentWithId = {
-                ...commentData,
-                id: commentId,
-                timestamp: Date.now(),
-                likes: 0,
-                dislikes: 0
-            };
-            
-            await commentRef.set(commentWithId);
-            return commentId;
-        } catch (error) {
-            console.error('Ошибка добавления комментария:', error);
-            throw error;
-        }
-    },
-
-    // Обновление комментария
-    updateComment: async (videoId, commentId, updates) => {
-        try {
-            await database.ref(`comments/${videoId}/${commentId}`).update(updates);
-            return true;
-        } catch (error) {
-            console.error('Ошибка обновления комментария:', error);
-            return false;
-        }
     }
 };
 
 // Глобальные переменные
 let currentVideoId = null;
-let currentVideoData = null;
-let userLiked = false;
-let userDisliked = false;
-let userSubscribed = false;
-let userSaved = false;
 
 // Функция извлечения YouTube ID из ссылки
 function extractYouTubeId(url) {
@@ -188,9 +141,7 @@ function generateThumbnail(videoId) {
 
 // Форматирование чисел
 function formatNumber(num) {
-    if (!num && num !== 0) return '0';
-    num = parseInt(num);
-    if (isNaN(num)) return '0';
+    if (!num) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + ' млн';
     if (num >= 1000) return (num / 1000).toFixed(1) + ' тыс';
     return num.toString();
@@ -273,22 +224,32 @@ function openVideo(videoId) {
     window.location.href = `video.html?id=${videoId}`;
 }
 
-// Загрузка главной страницы с улучшенными рекомендациями
+// УЛУЧШЕННАЯ ЗАГРУЗКА ГЛАВНОЙ СТРАНИЦЫ С РАНДОМНЫМИ РЕКОМЕНДАЦИЯМИ
 async function loadHomePage() {
+    console.log('Загружаем главную страницу...');
     const videoGrid = document.getElementById('video-grid');
     
-    if (!videoGrid) return;
+    if (!videoGrid) {
+        console.error('Не найден элемент video-grid');
+        return;
+    }
     
     try {
+        // Показываем скелетоны загрузки
         videoGrid.innerHTML = `
+            <div class="skeleton" style="height: 250px; border-radius: 12px;"></div>
+            <div class="skeleton" style="height: 250px; border-radius: 12px;"></div>
             <div class="skeleton" style="height: 250px; border-radius: 12px;"></div>
             <div class="skeleton" style="height: 250px; border-radius: 12px;"></div>
             <div class="skeleton" style="height: 250px; border-radius: 12px;"></div>
             <div class="skeleton" style="height: 250px; border-radius: 12px;"></div>
         `;
         
+        // Получаем все видео
         const videos = await db.getAllVideos();
+        console.log('Видео получены:', Object.keys(videos).length);
         
+        // Если нет видео, показываем сообщение
         if (!videos || Object.keys(videos).length === 0) {
             videoGrid.innerHTML = `
                 <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
@@ -303,77 +264,49 @@ async function loadHomePage() {
             return;
         }
         
+        // Преобразуем объект в массив
         const videoArray = Object.values(videos).filter(v => v && v.id);
+        console.log('Массив видео:', videoArray.length);
         
-        // УЛУЧШЕННЫЕ РЕКОМЕНДАЦИИ С УЧЕТОМ ПРЕДПОЧТЕНИЙ
-        let recommendations = [];
-        const user = authDB ? authDB.getCurrentUser() : null;
+        // УЛУЧШЕННЫЕ РЕКОМЕНДАЦИИ - СЛУЧАЙНОЕ ПЕРЕМЕШИВАНИЕ
+        let recommendations = [...videoArray];
         
-        // 1. Получаем предпочтения пользователя
-        const userSubscriptions = user ? (user.subscriptions || []) : [];
-        const userReactions = user ? (user.reactions || {}) : {};
-        const userSavedVideos = user ? (user.savedVideos || []) : [];
+        // 1. Перемешиваем все видео
+        recommendations.sort(() => Math.random() - 0.5);
         
-        // 2. Присваиваем баллы видео
-        const scoredVideos = videoArray.map(video => {
-            let score = 0;
-            
-            // Базовые баллы
-            score += (video.views || 0) / 100; // За просмотры
-            
-            // Новизна видео
-            const videoAge = Date.now() - (video.timestamp || Date.now());
-            const daysOld = videoAge / (1000 * 60 * 60 * 24);
-            if (daysOld < 1) score += 50;
-            else if (daysOld < 7) score += 30;
-            else if (daysOld < 30) score += 10;
-            
-            // Предпочтения пользователя
-            if (user) {
-                // Видео от подписанных авторов
-                if (userSubscriptions.includes(video.channelId)) {
-                    score += 100;
-                }
-                
-                // Видео, которые пользователь лайкнул
-                if (userReactions[video.id] === 'liked') {
-                    score += 80;
-                }
-                
-                // Видео, которые пользователь сохранил
-                if (userSavedVideos.includes(video.id)) {
-                    score += 60;
-                }
-                
-                // Видео от авторов, чьи видео пользователь лайкал
-                // (дополнительная логика может быть добавлена)
-            }
-            
-            // Рандомный элемент для разнообразия
-            score += Math.random() * 40;
-            
-            return { video, score };
+        // 2. Добавляем вес популярным видео (больше просмотров = больше шансов)
+        recommendations.sort((a, b) => {
+            const viewsA = a.views || 0;
+            const viewsB = b.views || 0;
+            const randomA = Math.random() * (viewsA / 1000);
+            const randomB = Math.random() * (viewsB / 1000);
+            return randomB - randomA;
         });
         
-        // 3. Сортируем по баллам
-        scoredVideos.sort((a, b) => b.score - a.score);
+        // 3. Добавляем вес новым видео (новые = больше шансов)
+        recommendations.sort((a, b) => {
+            const timeA = a.timestamp || 0;
+            const timeB = b.timestamp || 0;
+            const ageA = Date.now() - timeA;
+            const ageB = Date.now() - timeB;
+            const weightA = Math.random() * (1 / (ageA / 10000000 + 1));
+            const weightB = Math.random() * (1 / (ageB / 10000000 + 1));
+            return weightB - weightA;
+        });
         
-        // 4. Берем топ видео
-        const topVideos = scoredVideos.slice(0, 15).map(item => item.video);
+        // 4. Финальное перемешивание
+        recommendations.sort(() => Math.random() - 0.5);
         
-        // 5. Перемешиваем для разнообразия
-        for (let i = topVideos.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [topVideos[i], topVideos[j]] = [topVideos[j], topVideos[i]];
-        }
-        
-        recommendations = topVideos.slice(0, 12);
+        // Ограничиваем количество рекомендаций
+        recommendations = recommendations.slice(0, 12);
         
         // Отображаем видео
         videoGrid.innerHTML = recommendations
             .map(video => createVideoCard(video))
             .join('');
             
+        console.log('Видео отображены:', recommendations.length);
+        
     } catch (error) {
         console.error('Ошибка загрузки видео:', error);
         videoGrid.innerHTML = `
@@ -390,17 +323,23 @@ async function loadHomePage() {
 
 // УЛУЧШЕННЫЕ РЕКОМЕНДАЦИИ ДЛЯ СТРАНИЦЫ ВИДЕО
 async function loadRecommendations(currentVideoId) {
+    console.log('Загружаем рекомендации для видео:', currentVideoId);
     const recommendationsList = document.getElementById('recommendations-list');
     
-    if (!recommendationsList) return;
+    if (!recommendationsList) {
+        console.error('Не найден элемент recommendations-list');
+        return;
+    }
     
     try {
+        // Получаем все видео
         const videos = await db.getAllVideos();
         if (!videos || Object.keys(videos).length === 0) {
             recommendationsList.innerHTML = '<p style="color: #B0B0B0; text-align: center; padding: 20px;">Нет рекомендаций</p>';
             return;
         }
         
+        // Преобразуем в массив и фильтруем текущее видео
         const videoArray = Object.values(videos).filter(v => v && v.id && v.id !== currentVideoId);
         
         if (videoArray.length === 0) {
@@ -408,269 +347,117 @@ async function loadRecommendations(currentVideoId) {
             return;
         }
         
-        // Получаем текущее видео и пользователя
+        // Получаем текущее видео
         const currentVideo = await db.getVideo(currentVideoId);
         const currentChannelId = currentVideo?.channelId;
-        const user = authDB ? authDB.getCurrentUser() : null;
         
         // УЛУЧШЕННЫЙ АЛГОРИТМ РЕКОМЕНДАЦИЙ
         let recommendations = [];
-        const scoredVideos = [];
         
-        // Присваиваем баллы каждому видео
-        videoArray.forEach(video => {
-            let score = 0;
-            
-            // 1. Видео от того же автора (+50 баллов)
-            if (currentChannelId && video.channelId === currentChannelId) {
-                score += 50;
+        // 1. Видео от того же автора (30% шанс на попадание)
+        if (currentChannelId && Math.random() < 0.3) {
+            const sameChannelVideos = videoArray.filter(v => v.channelId === currentChannelId);
+            if (sameChannelVideos.length > 0) {
+                const randomSame = sameChannelVideos[Math.floor(Math.random() * sameChannelVideos.length)];
+                recommendations.push(randomSame);
             }
-            
-            // 2. Популярные видео (+1 балл за каждые 100 просмотров)
-            score += Math.floor((video.views || 0) / 100);
-            
-            // 3. Новые видео
-            const videoAge = Date.now() - (video.timestamp || Date.now());
-            const daysOld = videoAge / (1000 * 60 * 60 * 24);
-            if (daysOld < 7) score += 10;
-            if (daysOld < 1) score += 20;
-            
-            // 4. УЧЕТ ПРЕДПОЧТЕНИЙ ПОЛЬЗОВАТЕЛЯ
-            if (user) {
-                // Видео от авторов, на которых подписан пользователь
-                const userSubscriptions = user.subscriptions || [];
-                if (userSubscriptions.includes(video.channelId)) {
-                    score += 100;
-                }
-                
-                // Видео, которые пользователь лайкнул
-                const userReactions = user.reactions || {};
-                if (userReactions[video.id] === 'liked') {
-                    score += 80;
-                }
-                
-                // Видео, которые пользователь сохранил
-                const userSavedVideos = user.savedVideos || [];
-                if (userSavedVideos.includes(video.id)) {
-                    score += 60;
-                }
-            }
-            
-            // 5. Рандомный элемент
-            score += Math.random() * 30;
-            
-            scoredVideos.push({ video, score });
-        });
-        
-        // Сортируем по баллам
-        scoredVideos.sort((a, b) => b.score - a.score);
-        
-        // Берем топ-8 видео
-        const topVideos = scoredVideos.slice(0, 12).map(item => item.video);
-        
-        // Перемешиваем для разнообразия
-        const shuffled = [...topVideos];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
         
-        recommendations = shuffled.slice(0, 8);
+        // 2. Популярные видео (40% шанс)
+        if (Math.random() < 0.4) {
+            const popularVideos = [...videoArray]
+                .sort((a, b) => (b.views || 0) - (a.views || 0))
+                .slice(0, 5);
+            if (popularVideos.length > 0) {
+                const randomPopular = popularVideos[Math.floor(Math.random() * popularVideos.length)];
+                if (!recommendations.find(r => r.id === randomPopular.id)) {
+                    recommendations.push(randomPopular);
+                }
+            }
+        }
+        
+        // 3. Новые видео (30% шанс)
+        if (Math.random() < 0.3) {
+            const newVideos = [...videoArray]
+                .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+                .slice(0, 5);
+            if (newVideos.length > 0) {
+                const randomNew = newVideos[Math.floor(Math.random() * newVideos.length)];
+                if (!recommendations.find(r => r.id === randomNew.id)) {
+                    recommendations.push(randomNew);
+                }
+            }
+        }
+        
+        // 4. Случайные видео (заполняем оставшиеся места)
+        const remainingSlots = 8 - recommendations.length;
+        if (remainingSlots > 0) {
+            const randomVideos = [...videoArray]
+                .sort(() => Math.random() - 0.5)
+                .filter(v => !recommendations.find(r => r.id === v.id))
+                .slice(0, remainingSlots);
+            recommendations.push(...randomVideos);
+        }
+        
+        // Финальное перемешивание
+        recommendations.sort(() => Math.random() - 0.5);
         
         // Отображаем рекомендации
         recommendationsList.innerHTML = recommendations
             .map(video => createRecommendationCard(video))
             .join('');
             
+        console.log('Рекомендации отображены:', recommendations.length);
+        
     } catch (error) {
         console.error('Ошибка загрузки рекомендаций:', error);
         recommendationsList.innerHTML = '<p style="color: #B0B0B0; text-align: center; padding: 20px;">Ошибка загрузки рекомендаций</p>';
     }
 }
 
-// Обработка лайков/дизлайков видео
-async function handleVideoLike(videoId, action) {
-    try {
-        const video = await db.getVideo(videoId);
-        if (!video) return false;
-        
-        const user = authDB ? authDB.getCurrentUser() : null;
-        if (!user) {
-            showNotification('Для оценки видео необходимо войти в аккаунт', 'error');
-            return false;
-        }
-        
-        // Обновляем счетчики видео
-        if (action === 'like') {
-            const currentLikes = video.likes || 0;
-            await db.updateVideo(videoId, { likes: currentLikes + 1 });
-            
-            // Если был дизлайк, убираем его
-            if (userDisliked) {
-                const currentDislikes = video.dislikes || 0;
-                await db.updateVideo(videoId, { dislikes: Math.max(currentDislikes - 1, 0) });
-                userDisliked = false;
-            }
-            userLiked = true;
-            
-        } else if (action === 'dislike') {
-            const currentDislikes = video.dislikes || 0;
-            await db.updateVideo(videoId, { dislikes: currentDislikes + 1 });
-            
-            // Если был лайк, убираем его
-            if (userLiked) {
-                const currentLikes = video.likes || 0;
-                await db.updateVideo(videoId, { likes: Math.max(currentLikes - 1, 0) });
-                userLiked = false;
-            }
-            userDisliked = true;
-        }
-        
-        // Сохраняем реакцию пользователя
-        const userReactions = user.reactions || {};
-        userReactions[videoId] = action === 'like' ? 'liked' : 'disliked';
-        await authDB.updateUser(user.id, { reactions: userReactions });
-        
-        return true;
-        
-    } catch (error) {
-        console.error('Ошибка обработки оценки:', error);
-        return false;
+// Поиск видео
+async function performSearch(query) {
+    console.log('Выполняем поиск:', query);
+    
+    if (!query.trim()) {
+        showNotification('Введите поисковый запрос', 'info');
+        return;
     }
-}
-
-// Обработка подписки
-async function handleSubscribe(channelId) {
+    
     try {
-        const user = authDB ? authDB.getCurrentUser() : null;
-        if (!user) {
-            showNotification('Для подписки необходимо войти в аккаунт', 'error');
-            return false;
+        showNotification('Идет поиск...', 'info');
+        const results = await db.searchVideos(query);
+        
+        if (results.length === 0) {
+            showNotification('Ничего не найдено', 'info');
+            return;
         }
         
-        if (userSubscribed) {
-            // Отписываемся
-            const result = await authDB.unsubscribeFromChannel(channelId, user.id);
-            if (result.success) {
-                userSubscribed = false;
-                return true;
+        // Если мы на главной странице, показываем результаты
+        if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
+            const videoGrid = document.getElementById('video-grid');
+            if (videoGrid) {
+                videoGrid.innerHTML = results
+                    .map(video => createVideoCard(video))
+                    .join('');
+                
+                showNotification(`Найдено ${results.length} видео`, 'success');
             }
         } else {
-            // Подписываемся
-            const result = await authDB.subscribeToChannel(channelId, user.id);
-            if (result.success) {
-                userSubscribed = true;
-                return true;
-            }
+            // Если не на главной, переходим на главную с поиском
+            window.location.href = `index.html?search=${encodeURIComponent(query)}`;
         }
-        
-        return false;
         
     } catch (error) {
-        console.error('Ошибка подписки:', error);
-        return false;
+        console.error('Ошибка поиска:', error);
+        showNotification('Ошибка поиска', 'error');
     }
-}
-
-// Обработка сохранения видео
-async function handleSaveVideo(videoId) {
-    try {
-        const user = authDB ? authDB.getCurrentUser() : null;
-        if (!user) {
-            showNotification('Для сохранения видео необходимо войти в аккаунт', 'error');
-            return false;
-        }
-        
-        const savedVideos = user.savedVideos || [];
-        
-        if (userSaved) {
-            // Удаляем из сохраненных
-            const newSavedVideos = savedVideos.filter(id => id !== videoId);
-            await authDB.updateUser(user.id, { savedVideos: newSavedVideos });
-            userSaved = false;
-        } else {
-            // Добавляем в сохраненные
-            if (!savedVideos.includes(videoId)) {
-                savedVideos.push(videoId);
-                await authDB.updateUser(user.id, { savedVideos: savedVideos });
-            }
-            userSaved = true;
-        }
-        
-        return true;
-        
-    } catch (error) {
-        console.error('Ошибка сохранения видео:', error);
-        return false;
-    }
-}
-
-// Копирование ссылки
-async function copyToClipboard(text) {
-    try {
-        await navigator.clipboard.writeText(text);
-        return true;
-    } catch (error) {
-        // Fallback для старых браузеров
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        return true;
-    }
-}
-
-// Обработка текста (ссылки и таймкоды)
-function processText(text) {
-    if (!text) return '';
-    
-    // Экранируем HTML
-    let processed = text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    
-    // Обрабатываем ссылки
-    processed = processed.replace(/(https?:\/\/[^\s]+)/g, (url) => {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-link">${url}</a>`;
-    });
-    
-    // Обрабатываем таймкоды (например: 1:23, 01:23:45)
-    processed = processed.replace(/(\b\d{1,2}:)?\d{1,2}:\d{2}\b/g, (timestamp) => {
-        const seconds = timestampToSeconds(timestamp);
-        if (seconds !== null) {
-            return `<span class="timestamp-link" data-timestamp="${seconds}">${timestamp}</span>`;
-        }
-        return timestamp;
-    });
-    
-    // Обрабатываем переносы строк
-    processed = processed.replace(/\n/g, '<br>');
-    
-    return processed;
-}
-
-// Конвертация таймкода в секунды
-function timestampToSeconds(timestamp) {
-    const parts = timestamp.split(':').map(Number);
-    
-    if (parts.length === 2) {
-        // MM:SS
-        return parts[0] * 60 + parts[1];
-    } else if (parts.length === 3) {
-        // HH:MM:SS
-        return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    }
-    
-    return null;
 }
 
 // Показать уведомление
 function showNotification(message, type = 'info') {
+    console.log('Уведомление:', message, type);
+    
     // Удаляем старые уведомления
     const oldNotification = document.querySelector('.notification');
     if (oldNotification) oldNotification.remove();
@@ -705,6 +492,8 @@ function showNotification(message, type = 'info') {
 
 // Мобильный поиск
 function showMobileSearch() {
+    console.log('Показываем мобильный поиск');
+    
     // Удаляем старый модал
     const oldModal = document.querySelector('.mobile-search-modal');
     if (oldModal) oldModal.remove();
@@ -794,45 +583,9 @@ function searchFromSuggestion(query) {
     if (modal) modal.remove();
 }
 
-// Поиск видео
-async function performSearch(query) {
-    if (!query.trim()) {
-        showNotification('Введите поисковый запрос', 'info');
-        return;
-    }
-    
-    try {
-        showNotification('Идет поиск...', 'info');
-        const results = await db.searchVideos(query);
-        
-        if (results.length === 0) {
-            showNotification('Ничего не найдено', 'info');
-            return;
-        }
-        
-        // Если мы на главной странице, показываем результаты
-        if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
-            const videoGrid = document.getElementById('video-grid');
-            if (videoGrid) {
-                videoGrid.innerHTML = results
-                    .map(video => createVideoCard(video))
-                    .join('');
-                
-                showNotification(`Найдено ${results.length} видео`, 'success');
-            }
-        } else {
-            // Если не на главной, переходим на главную с поиском
-            window.location.href = `index.html?search=${encodeURIComponent(query)}`;
-        }
-        
-    } catch (error) {
-        console.error('Ошибка поиска:', error);
-        showNotification('Ошибка поиска', 'error');
-    }
-}
-
 // Переход к загрузке
 function goToUpload() {
+    console.log('Переход к загрузке видео');
     if (typeof checkUploadAccess === 'function') {
         checkUploadAccess();
     } else {
@@ -842,9 +595,18 @@ function goToUpload() {
 
 // Проверка доступа к загрузке
 function checkUploadAccess() {
-    const user = authDB ? authDB.getCurrentUser() : null;
+    console.log('Проверка доступа к загрузке');
+    
+    // Если нет системы аутентификации, просто переходим
+    if (typeof authDB === 'undefined' || typeof authDB.getCurrentUser === 'undefined') {
+        window.location.href = 'upload.html';
+        return true;
+    }
+    
+    const user = authDB.getCurrentUser();
     
     if (!user) {
+        // Показываем модалку входа
         if (typeof showAuthModal === 'function') {
             showAuthModal('login');
             showNotification('Для загрузки видео необходимо войти в аккаунт', 'info');
@@ -855,6 +617,7 @@ function checkUploadAccess() {
     }
     
     if (!user.channelCreated) {
+        // Показываем создание канала
         if (typeof showChannelCreationModal === 'function') {
             showChannelCreationModal();
             return false;
@@ -868,11 +631,14 @@ function checkUploadAccess() {
 // Инициализация мобильной навигации
 function setupMobileNavigation() {
     if (window.innerWidth <= 768) {
+        // Проверяем, нет ли уже мобильной навигации
         if (document.querySelector('.mobile-bottom-nav')) return;
         
+        // Создаем мобильную нижнюю панель навигации
         const mobileNav = document.createElement('div');
         mobileNav.className = 'mobile-bottom-nav';
         
+        // Определяем активную страницу
         const isIndex = window.location.pathname.includes('index.html') || window.location.pathname === '/';
         const isVideo = window.location.pathname.includes('video.html');
         const isUpload = window.location.pathname.includes('upload.html');
@@ -899,15 +665,19 @@ function setupMobileNavigation() {
         
         document.body.appendChild(mobileNav);
         
+        // Удаляем обычный поиск из header на мобильных
         const searchBar = document.querySelector('.search-bar');
         if (searchBar) searchBar.style.display = 'none';
         
+        // Показываем кнопку поиска
         const mobileSearchBtn = document.querySelector('.mobile-search-btn');
         if (mobileSearchBtn) mobileSearchBtn.style.display = 'flex';
     } else {
+        // На десктопе показываем обычный поиск
         const searchBar = document.querySelector('.search-bar');
         if (searchBar) searchBar.style.display = 'flex';
         
+        // Удаляем мобильные элементы
         const mobileNav = document.querySelector('.mobile-bottom-nav');
         if (mobileNav) mobileNav.remove();
         
@@ -930,13 +700,16 @@ function initMenu() {
     }
 }
 
-// Основная инициализация
+// Основная инициализация при загрузке страницы
 function initPage() {
+    console.log('Инициализация страницы...');
+    
     // Проверяем URL параметры для поиска
     const urlParams = new URLSearchParams(window.location.search);
     const searchQuery = urlParams.get('search');
     
     if (searchQuery) {
+        // Выполняем поиск если есть запрос
         performSearch(searchQuery);
     }
     
@@ -984,22 +757,18 @@ function initPage() {
     window.showNotification = showNotification;
     window.loadRecommendations = loadRecommendations;
     window.checkUploadAccess = checkUploadAccess;
-    window.handleVideoLike = handleVideoLike;
-    window.handleSubscribe = handleSubscribe;
-    window.handleSaveVideo = handleSaveVideo;
-    window.copyToClipboard = copyToClipboard;
-    window.processText = processText;
-    window.timestampToSeconds = timestampToSeconds;
+    
+    console.log('Страница инициализирована');
 }
 
-// Запускаем инициализацию
+// Запускаем инициализацию при загрузке DOM
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initPage);
 } else {
     initPage();
 }
 
-// Экспортируем функции
+// Экспортируем функции для использования в других файлах
 window.db = db;
 window.extractYouTubeId = extractYouTubeId;
 window.formatNumber = formatNumber;
